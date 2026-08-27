@@ -40,6 +40,8 @@ Thumbs.db
 book_cache/book_log/
 book_cache/push_result/
 *.log
+demo-project/
+my-book-project/
 
 # Test
 .coverage
@@ -47,6 +49,7 @@ htmlcov/
 .pytest_cache/
 .tox/
 .nox/
+benchmark_results.json
 
 # Distribution
 *.tar.gz
@@ -55,6 +58,15 @@ htmlcov/
 
 # Documentation
 docs/_build/
+
+# Examples
+examples/demo-project/
+examples/my-book-project/
+examples/*.html
+
+# Screenshots (保留示例，忽略个人截图)
+examples/screenshot_*.png
+!examples/screenshot_overview_01.png
 
 # Misc
 *.bak

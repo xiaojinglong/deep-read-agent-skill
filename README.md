@@ -1,10 +1,41 @@
 # 📚 Read Book Skill - 读书智能体
 
-> 一个能自动精读书籍、生成万字深度读书笔记的AI智能体技能
+> 一个能自动精读书籍、生成15000+字深度读书笔记的AI智能体技能
 
 [![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-5.0-orange.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-33%20passed-brightgreen.svg)]()
+
+## 🎯 这是什么？
+
+Read Book Skill 是一个**AI驱动的读书智能体**，它可以：
+
+- 📖 **自动精读书籍** - 基于书籍内容生成深度分析
+- 📝 **生成万字笔记** - 15000+字、15模块的HTML精读笔记
+- 🎨 **精美排版输出** - 暖色调CSS设计，5种可视化图表
+- ✅ **自动质量检查** - 11项质检确保内容质量
+
+**适合谁用？**
+- 📚 爱读书但没时间做笔记的人
+- 🎓 需要深度理解书籍的学生和研究者
+- 💼 需要快速掌握商业书籍的职场人
+- 🤖 想要构建读书AI助手的开发者
+
+## 📸 效果展示
+
+### 生成的精读笔记
+
+![精读笔记示例](examples/screenshot.png)
+
+### 核心功能
+
+| 功能 | 说明 | 示例 |
+|------|------|------|
+| 智能选书 | 按优先级、分类自动选书 | `python scripts/book_manager.py select` |
+| 深度精读 | 15000+字、15模块笔记 | `python scripts/html_template.py generate` |
+| 自动质检 | 11项质量检查 | `python scripts/qc_check.py file.html` |
+| 书单管理 | 添加、搜索、统计 | `python scripts/book_manager.py stats` |
 
 ## ✨ 功能特性
 
@@ -17,14 +48,30 @@
 
 ## 🚀 快速开始
 
-### 1. 克隆项目
+### 一键开始（推荐）
+
+**Windows用户**：
+```bash
+# 双击运行
+examples\quick_start.bat
+```
+
+**Mac/Linux用户**：
+```bash
+# 运行脚本
+bash examples/quick_start.sh
+```
+
+### 手动开始
+
+#### 1. 克隆项目
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/read-book-skill.git
 cd read-book-skill
 ```
 
-### 2. 初始化读书项目
+#### 2. 初始化读书项目
 
 ```bash
 python scripts/init_project.py /path/to/your-book-project
@@ -82,6 +129,55 @@ python scripts/qc_check.py book_cache/book_raw_content/book_20260827_1030.html
 # 更新阅读状态
 python scripts/book_manager.py update "书名"
 ```
+
+## 🎯 使用场景
+
+### 场景1：快速掌握商业书籍
+```bash
+# 你：帮我读一本《原则》
+# AI：自动生成15000+字精读笔记，包含核心理论、案例、行动建议
+```
+
+### 场景2：批量阅读书单
+```bash
+# 你：帮我读3本书
+# AI：自动循环执行精读流程，每本书生成独立笔记
+```
+
+### 场景3：建立个人知识库
+```bash
+# 添加书籍到书单
+python scripts/book_manager.py add "书名" --author "作者" --priority 高
+
+# 定期精读
+python scripts/book_manager.py select
+
+# 查看阅读统计
+python scripts/book_manager.py stats
+```
+
+## ⚡ 性能说明
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 生成时间 | 2-5分钟 | 取决于AI响应速度 |
+| 笔记字数 | 15000+字 | 每份精读笔记 |
+| 模块数量 | 15个 | 完整的知识结构 |
+| 图表数量 | 5种 | 可视化展示 |
+| 质检项目 | 11项 | 全面质量检查 |
+| 支持格式 | HTML | 精美排版，支持移动端 |
+
+**系统要求**：
+- Python 3.7+
+- 仅使用标准库，无需额外依赖
+- 支持 Windows、macOS、Linux
+
+## ⚠️ 局限性说明
+
+1. **内容生成依赖AI** - 精读笔记内容由AI生成，可能需要人工校对
+2. **专业书籍效果有限** - 对于高度专业的技术书籍，可能需要补充领域知识
+3. **中文书籍优化** - 目前主要针对中文书籍优化，英文书籍支持有限
+4. **单次处理** - 每次只能精读一本书，不支持并行处理
 
 ## 📁 项目结构
 
@@ -205,6 +301,29 @@ python run_tests.py TestBookManager
 | HTML闭合 | 是 | 以</html>结尾 |
 | 无重复注水 | 是 | 长句不重复3次以上 |
 
+## 🔄 更新说明
+
+### 如何获取最新版本？
+
+```bash
+# 克隆最新版本
+git clone https://github.com/YOUR_USERNAME/read-book-skill.git
+
+# 或者拉取更新
+cd read-book-skill
+git pull origin main
+```
+
+### 如何贡献代码？
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建 Pull Request
+
+详见 [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ## 🤝 贡献指南
 
 欢迎贡献代码、报告问题或提出建议！
@@ -223,6 +342,22 @@ python run_tests.py TestBookManager
 - 添加新功能需要编写单元测试
 - 修改文档需要同步更新README.md
 - 提交前运行测试确保通过
+
+## ❓ 常见问题
+
+**Q: 需要安装什么依赖？**
+A: 仅需Python 3.7+，使用标准库，无需额外安装。
+
+**Q: 生成一份笔记需要多长时间？**
+A: 通常2-5分钟，取决于AI响应速度。
+
+**Q: 支持哪些书籍？**
+A: 理论上支持所有书籍，但中文商业、社科类书籍效果最佳。
+
+**Q: 如何自定义字数限制？**
+A: 修改`book_config.json`中的`min_words`和`target_words`字段。
+
+更多问题详见 [FAQ.md](FAQ.md)
 
 ## 📄 许可证
 
