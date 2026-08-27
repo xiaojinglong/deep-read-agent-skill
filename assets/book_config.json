@@ -1,0 +1,106 @@
+{
+  "version": "5.0",
+  "book_list_path": "book_list.json",
+  "output_dirs": {
+    "book_meta": "book_cache/book_meta",
+    "book_raw_content": "book_cache/book_raw_content",
+    "push_result": "book_cache/push_result",
+    "book_log": "book_cache/book_log"
+  },
+  "min_words": 15000,
+  "target_words": 15000,
+  "max_regenerate": 2,
+  "html_style": {
+    "background": "#faf9f6",
+    "card_background": "#ffffff",
+    "font_size": "18px",
+    "line_height": "1.85",
+    "max_width": "820px",
+    "title_size": "23px",
+    "font_family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+    "shadow_sm": "0 1px 3px rgba(0,0,0,0.06)",
+    "shadow_md": "0 4px 12px rgba(0,0,0,0.08)",
+    "shadow_lg": "0 8px 24px rgba(0,0,0,0.10)"
+  },
+  "modules": [
+    "荣誉与口碑",
+    "作者简介",
+    "目标读者与阅读价值",
+    "创作背景",
+    "核心理论逐章拆解",
+    "实用案例",
+    "读者笔记精选",
+    "关键数据与事实",
+    "金句摘录",
+    "作者底层逻辑",
+    "可视化图表总结",
+    "落地实践指南",
+    "跨书关联",
+    "客观评价",
+    "一页精华"
+  ],
+  "module_emojis": {
+    "荣誉与口碑": "🏆",
+    "作者简介": "✍️",
+    "目标读者与阅读价值": "👥",
+    "创作背景": "🌐",
+    "核心理论逐章拆解": "🔬",
+    "实用案例": "📌",
+    "读者笔记精选": "💭",
+    "关键数据与事实": "📊",
+    "金句摘录": "💎",
+    "作者底层逻辑": "🧠",
+    "可视化图表总结": "📈",
+    "落地实践指南": "🎯",
+    "跨书关联": "🔗",
+    "客观评价": "⚖️",
+    "一页精华": "📖"
+  },
+  "module_word_targets": {
+    "荣誉与口碑": 150,
+    "作者简介": 600,
+    "目标读者与阅读价值": 700,
+    "创作背景": 600,
+    "核心理论逐章拆解": 5000,
+    "实用案例": 800,
+    "读者笔记精选": 1000,
+    "关键数据与事实": 300,
+    "金句摘录": 500,
+    "作者底层逻辑": 700,
+    "可视化图表总结": 700,
+    "落地实践指南": 700,
+    "跨书关联": 300,
+    "客观评价": 600,
+    "一页精华": 300
+  },
+  "color_palette": {
+    "green": {"hex": "#5b8a72", "bg": "#ecf3ef", "usage": "关键概念/正面观点/核心定义"},
+    "amber": {"hex": "#c8893d", "bg": "#fdf5ea", "usage": "注意事项/风险提示/局限"},
+    "coral": {"hex": "#c75450", "bg": "#faeae8", "usage": "反对观点/误区警示/争议"},
+    "slate": {"hex": "#4a7a9a", "bg": "#e9f1f6", "usage": "背景信息/补充说明/知识网络"},
+    "lavender": {"hex": "#8b6db0", "bg": "#f1ebf5", "usage": "读者画像/建议/推荐"},
+    "gold": {"hex": "#b89968", "bg": "#f8f4ec", "usage": "金句引用/一页精华/荣誉口碑"},
+    "teal": {"hex": "#3d8a80", "bg": "#e6f2f0", "usage": "思维导图分支/雷达图/案例卡片"}
+  },
+  "chart_types": {
+    "bar": "横向条形图，CSS flex实现，渐变填充，用于数据对比和权重展示",
+    "timeline": "时间线，CSS border-left实现，金色圆点节点，用于发展脉络",
+    "mindmap": "思维导图，嵌套卡片实现，teal色顶部边框，用于知识结构",
+    "radar": "雷达图文字版，CSS grid实现，圆点评分，用于多维评价",
+    "flow": "流程图，箭头连接的卡片实现，渐变背景，用于逻辑链条"
+  },
+  "quality_check": {
+    "min_words": 15000,
+    "module_count": 15,
+    "min_charts": 4,
+    "min_data_rows": 12,
+    "min_quotes": 12,
+    "min_actions": 6,
+    "chapter_coverage": "all"
+  },
+  "selection_rules": {
+    "priority_order": ["高", "中", "低"],
+    "prefer_unread": true,
+    "prefer_null_last_read": true
+  }
+}

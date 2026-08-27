@@ -1,0 +1,92 @@
+[
+  {
+    "title": "穷查理宝典",
+    "author": "查理·芒格",
+    "priority": "高",
+    "tags": ["投资", "思维模型"],
+    "en_slug": "qiong-cha-li-bao-dian",
+    "user_read": false,
+    "last_read": null
+  },
+  {
+    "title": "思考，快与慢",
+    "author": "丹尼尔·卡尼曼",
+    "priority": "高",
+    "tags": ["心理学", "决策"],
+    "en_slug": "si-kao-kuai-yu-man",
+    "user_read": false,
+    "last_read": null
+  },
+  {
+    "title": "系统之美",
+    "author": "德内拉·梅多斯",
+    "priority": "高",
+    "tags": ["系统思维"],
+    "en_slug": "xi-tong-zhi-mei",
+    "user_read": false,
+    "last_read": null
+  },
+  {
+    "title": "反脆弱",
+    "author": "纳西姆·塔勒布",
+    "priority": "高",
+    "tags": ["风险", "哲学"],
+    "en_slug": "fan-cui-ruo",
+    "user_read": false,
+    "last_read": null
+  },
+  {
+    "title": "人类简史",
+    "author": "尤瓦尔·赫拉利",
+    "priority": "高",
+    "tags": ["历史", "人类文明史"],
+    "en_slug": "ren-lei-jian-shi",
+    "user_read": false,
+    "last_read": null
+  },
+  {
+    "title": "原则",
+    "author": "瑞·达利欧",
+    "priority": "高",
+    "tags": ["管理", "投资"],
+    "en_slug": "yuan-ze",
+    "user_read": false,
+    "last_read": null
+  },
+  {
+    "title": "刻意练习",
+    "author": "安德斯·艾利克森",
+    "priority": "中",
+    "tags": ["学习方法"],
+    "en_slug": "ke-yi-lian-xi",
+    "user_read": false,
+    "last_read": null
+  },
+  {
+    "title": "非暴力沟通",
+    "author": "马歇尔·卢森堡",
+    "priority": "中",
+    "tags": ["沟通", "心理学"],
+    "en_slug": "fei-bao-li-gou-tong",
+    "user_read": false,
+    "last_read": null
+  },
+  {
+    "title": "枪炮、病菌与钢铁",
+    "author": "贾雷德·戴蒙德",
+    "priority": "中",
+    "tags": ["历史", "人类学"],
+    "en_slug": "qiang-pao-bing-jun-yu-gang-tie",
+    "user_read": false,
+    "last_read": null
+  },
+  {
+    "title": "心流",
+    "author": "米哈里·契克森米哈赖",
+    "priority": "中",
+    "tags": ["心理学", "效率"],
+    "en_slug": "xin-liu",
+    "user_read": false,
+    "last_read": null
+  }
+]

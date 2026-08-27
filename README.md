@@ -1,0 +1,248 @@
+# 📚 Read Book Skill - 读书智能体
+
+> 一个能自动精读书籍、生成万字深度读书笔记的AI智能体技能
+
+[![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-5.0-orange.svg)]()
+
+## ✨ 功能特性
+
+- 📖 **智能选书** - 按优先级、分类、阅读状态自动选书
+- 📝 **深度精读** - 自动生成15000+字、15模块的HTML精读笔记
+- 🎨 **精美排版** - 暖色调CSS设计，5种可视化图表
+- ✅ **自动质检** - 字数、模块、图表、金句等11项质量检查
+- 📊 **书单管理** - 添加、删除、搜索、统计书单
+- 🔄 **批量阅读** - 支持多本连读，自动生成摘要
+
+## 🚀 快速开始
+
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/YOUR_USERNAME/read-book-skill.git
+cd read-book-skill
+```
+
+### 2. 初始化读书项目
+
+```bash
+python scripts/init_project.py /path/to/your-book-project
+```
+
+这会创建完整的项目结构：
+```
+your-book-project/
+├── book_config.json          # 配置文件
+├── book_list.json            # 书单数据（含10本示例）
+├── scripts/                  # 核心脚本
+├── references/               # 参考文档
+├── assets/                   # 模板资产
+├── agent_prompt/             # Agent提示词
+└── book_cache/               # 缓存目录
+    ├── book_meta/            # 书籍元数据
+    ├── book_raw_content/     # 精读笔记HTML
+    ├── push_result/          # 推送结果
+    └── book_log/             # 运行日志
+```
+
+### 3. 管理书单
+
+```bash
+# 查看书单统计
+python scripts/book_manager.py stats
+
+# 添加新书
+python scripts/book_manager.py add "书名" --author "作者" --priority 高 --tags "标签1,标签2"
+
+# 列出所有书
+python scripts/book_manager.py list
+
+# 搜索书籍
+python scripts/book_manager.py search "关键词"
+```
+
+### 4. 执行精读
+
+```bash
+# 自动选书（按优先级）
+python scripts/book_manager.py select
+
+# 指定书名选书
+python scripts/book_manager.py select --title "书名"
+
+# 生成HTML骨架
+python scripts/html_template.py generate --title "书名" --author "作者" --task-id book_20260827_1030
+
+# 填充内容（AI生成15000+字精读笔记）
+
+# 质检
+python scripts/qc_check.py book_cache/book_raw_content/book_20260827_1030.html
+
+# 更新阅读状态
+python scripts/book_manager.py update "书名"
+```
+
+## 📁 项目结构
+
+```
+read-book-skill/
+├── SKILL.md                    # 技能说明文档（Claude Code使用）
+├── README.md                   # 本文件
+├── LICENSE                     # MIT许可证
+├── requirements.txt            # Python依赖
+├── .gitignore                  # Git忽略规则
+├── run_tests.py                # 测试运行脚本
+│
+├── scripts/                    # 核心脚本
+│   ├── book_manager.py         # 书单管理（选书、更新、搜索、统计）
+│   ├── html_template.py        # HTML模板生成器（v5版本，15模块）
+│   ├── qc_check.py             # 质检脚本（11项检查）
+│   └── init_project.py         # 项目初始化脚本
+│
+├── tests/                      # 单元测试
+│   ├── test_book_manager.py    # 书单管理测试
+│   └── test_qc_check.py        # 质检脚本测试
+│
+├── references/                 # 参考文档
+│   ├── pipeline.md             # 7步流水线详解
+│   ├── quality_standard.md     # 质检标准
+│   ├── html_visual_standard.md # HTML视觉标准
+│   └── book_list_format.md     # 书单JSON格式规范
+│
+└── assets/                     # 模板资产
+    ├── book_config.json        # 配置文件模板
+    └── book_list_template.json # 书单模板（10本示例）
+```
+
+## 📖 精读笔记模块
+
+一份完整的精读笔记包含15个模块：
+
+| # | 模块 | Emoji | 字数目标 | 核心要求 |
+|---|------|-------|---------|----------|
+| ① | 荣誉与口碑 | 🏆 | 150 | 豆瓣评分、名人荐读、机构推荐 |
+| ② | 作者简介 | ✍️ | 600 | 身份+跨界身份+写作动机 |
+| ③ | 目标读者与阅读价值 | 👥 | 700 | 4类读者画像+5项收获 |
+| ④ | 创作背景 | 🌐 | 600 | 时代背景+故事原型+写作手法 |
+| ⑤ | **核心理论逐章拆解** | 🔬 | **5000** | **覆盖全书，场景→步骤→心法** |
+| ⑥ | 实用案例 | 📌 | 800 | 案例拆解+一句话启发 |
+| ⑦ | 读者笔记精选 | 💭 | 1000 | 按主题分类，划线+批注 |
+| ⑧ | 关键数据与事实 | 📊 | 300 | 数据+架构解读 |
+| ⑨ | 金句摘录 | 💎 | 500 | 按主题分组，每条附解读 |
+| ⑩ | 作者底层逻辑 | 🧠 | 700 | 因果链+可迁移法则+世界观 |
+| ⑪ | 可视化图表总结 | 📈 | 700 | ≥4种CSS图表 |
+| ⑫ | 落地实践指南 | 🎯 | 700 | ≥6条行动建议+路线图 |
+| ⑬ | 跨书关联 | 🔗 | 300 | 阅读地图+关联表格 |
+| ⑭ | 客观评价 | ⚖️ | 600 | 认同+存疑+最大认知增量 |
+| ⑮ | 一页精华 | 📖 | 300 | 四段式复盘+一句话总结 |
+
+## 🔧 配置说明
+
+### book_config.json
+
+```json
+{
+  "version": "5.0",
+  "min_words": 15000,
+  "target_words": 15000,
+  "max_regenerate": 2,
+  "html_style": {
+    "background": "#faf9f6",
+    "font_size": "18px",
+    "line_height": "1.85",
+    "max_width": "820px"
+  },
+  "modules": ["荣誉与口碑", "作者简介", ...],
+  "quality_check": {
+    "min_words": 15000,
+    "module_count": 15,
+    "min_charts": 4,
+    "min_quotes": 12
+  }
+}
+```
+
+### 自定义字数限制
+
+如需修改字数限制，需要同步修改以下文件：
+
+1. `scripts/qc_check.py` - 质检阈值
+2. `scripts/init_project.py` - 配置模板
+3. `scripts/html_template.py` - 提示文案
+4. `SKILL.md` - 文档说明
+5. `references/pipeline.md` - 流水线文档
+6. `references/quality_standard.md` - 质检标准
+
+## 🧪 运行测试
+
+```bash
+# 运行所有测试
+python run_tests.py
+
+# 详细输出
+python run_tests.py -v
+
+# 运行特定测试
+python run_tests.py TestBookManager
+```
+
+## 📋 质检标准
+
+精读笔记必须通过以下全部检查：
+
+| 检查项 | 阈值 | 说明 |
+|--------|------|------|
+| 正文字数 | ≥ 15000 | 去除CSS后的纯文字 |
+| 模块完整 | 15/15 | 15个模块全部存在 |
+| 模块有内容 | 15/15 | 每模块≥200字实质内容 |
+| 图表种类 | ≥ 4种 | 5种图表中至少4种 |
+| 章节卡片 | ≥ 8 | chapter-card数量 |
+| 金句 | ≥ 12 | blockquote数量 |
+| 数据表行 | ≥ 12 | tr数量 |
+| 行动建议 | ≥ 6 | 落地实践指南中的li |
+| 占位符 | 0 | 无【...】、TODO残留 |
+| HTML闭合 | 是 | 以</html>结尾 |
+| 无重复注水 | 是 | 长句不重复3次以上 |
+
+## 🤝 贡献指南
+
+欢迎贡献代码、报告问题或提出建议！
+
+### 贡献方式
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建 Pull Request
+
+### 开发规范
+
+- Python代码遵循PEP8规范
+- 添加新功能需要编写单元测试
+- 修改文档需要同步更新README.md
+- 提交前运行测试确保通过
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+
+## 🙏 致谢
+
+- 感谢所有贡献者和使用者
+- 特别感谢刘润老师的《底层逻辑》启发
+- 灵感来源于对深度阅读的热爱
+
+## 📧 联系方式
+
+- Issues: GitHub Issues
+- Discussions: GitHub Discussions
+
+## ⭐ Star History
+
+如果这个项目对你有帮助，请给个Star支持一下！
+
+---
+
+**读书使人充实，思考使人深邃，交流使人清醒。** - 弗朗西斯·培根
