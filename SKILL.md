@@ -1,52 +1,101 @@
 ---
 name: read-book-skill
-description: "读书智能体搭建技能。用于从零搭建一个能提供书单维护、精读一本书、生成万字深度读书笔记HTML的读书智能体。包含项目初始化、书单管理、HTML模板生成、质检脚本，以及完整的7步精读流水线（选书、元数据、生成15000字精读、质检、状态更新、日志、摘要）。当用户说搭一个读书智能体、创建读书agent、搭建精读系统、book agent、读书笔记自动生成等时触发。也可用于已有书单的精读执行：用户说读书、精读、读一本、帮我读书时，按流水线执行精读任务。"
+description: "搭建读书智能体并精读书籍：创建具名智能体、维护书单、联网核验事实、生成15000字15模块HTML深度读书笔记并自动质检。触发词：搭读书agent、创建读书智能体、帮我读书、精读一本、读3本书、书单管理。"
 agent_created: true
 ---
 
-# read-book-skill — 读书智能体搭建技能
+# read-book-skill — 读书智能体技能
 
-## 用途
+> **所有命令都由你（AI）执行。** 用户很可能完全不懂命令行，
+> 不要把命令念给用户、也不要要求用户自己去输入任何命令 —— 你跑完告诉他结果就行。
 
-在任意目录下快速搭建一个读书精读智能体，具备以下能力：
+## 先判断用户想要什么
 
-1. **书单维护** — 添加、删除、搜索、按分类/优先级列出、统计书单
-2. **精读书籍** — 自动选书或指定书目，执行深度精读
-3. **生成读书笔记** — 输出 15000+ 字、15 模块、5 种 CSS 图表的 HTML 精读笔记
-4. **质量检查** — 自动质检字数、模块、图表、数据、金句、行动建议等
+用户不会照着文档说话。先按他的话定位到对应的动作：
 
-## 两种使用模式
+| 用户说 | 你要做的 |
+|--------|---------|
+| "帮我安装这个 skill"（多半还给了链接） | 见下面「安装」 |
+| "创建一个读书智能体 xxx" / "建一个叫 xxx 的读书 agent" | 走「创建具名智能体」 |
+| "用 xxx 帮我读《孙子兵法》" | 先定位 xxx 的工作区，再跑精读流水线 |
+| "帮我读《孙子兵法》"（没提智能体名字） | 直接用 skill 根目录跑流水线 |
+| "读一本" / "再读 3 本" | 自动选书，跑 N 次流水线 |
+| "书单里还有啥" / "加一本 X" / "删掉 X" | 只做书单操作，不生成笔记 |
 
-### 模式 A — 搭建项目（从零创建）
+**不要主动问用户"要把项目建在哪"**，这会造成不必要的打断。
+用户给了名字就按名字建；没给名字就用 skill 根目录。
 
-用户说"搭一个读书智能体""创建读书agent"时：
+## 安装
 
-1. 运行初始化脚本创建项目骨架：
-   ```bash
-   python <skill_dir>/scripts/init_project.py /path/to/new-project
-   ```
-   这会生成完整目录结构：`book_config.json`、`book_list.json`（含10本示例）、`scripts/`（3个核心脚本）、`references/`（参考文档）、`assets/`（模板资产）、`book_cache/`（4个子目录）、`agent_prompt/`。
+用户常常是让你装，而不是自己装。装到当前这个 AI 工具的 skills 目录下即可：
 
-2. 引导用户编辑 `book_list.json` 添加自己的书单（参考 `references/book_list_format.md`）。
-
-3. 参考 `references/pipeline.md` 编写 `agent_prompt/main_orchestrator.md` 调度提示词。
-
-4. 验证：`python scripts/book_manager.py stats` 查看书单统计。
-
-### 模式 B — 执行精读（已有项目）
-
-用户说"读书""精读""读一本""帮我读书"时，按 7 步流水线执行：
-
-**Step 0 初始化**：确定项目根目录（book_list.json 所在目录），生成 task_id = `book_${日期}_${时段}`。
-
-**Step 1 选书**：
 ```bash
-python scripts/book_manager.py select                # 自动选（优先级+未读优先）
-python scripts/book_manager.py select --title "书名"   # 指定书名
-python scripts/book_manager.py select --random        # 随机选
+git clone --depth 1 <仓库地址> <该工具的skills目录>/read-book-skill
 ```
 
-**Step 2 写元数据**：将选中书籍信息写入 `book_cache/book_meta/${task_id}.json`。
+常见位置：`~/.claude/skills/`、`~/.openclaw/skills/`、`~/.agents/skills/`。
+没有 git 就下载 zip 解压过去。**不需要跑 install.py**，本 skill 零配置，复制到位即可用。
+
+多平台批量安装才用 `python install.py`（详见 README）。
+
+> 装完通常要**新开会话**才生效；OpenClaw 还需 `openclaw gateway restart`。
+
+## 创建具名智能体
+
+用户说"创建一个读书智能体 xxx"时，建一个独立工作区，名字就是 xxx：
+
+```bash
+python scripts/agent_manager.py create "<名字>" [--desc "一句话说明"]
+python scripts/agent_manager.py use "<名字>"      # 拿工作区路径与书单概况
+python scripts/agent_manager.py list              # 列出所有智能体
+python scripts/agent_manager.py info "<名字>"
+python scripts/agent_manager.py remove "<名字>"   # 只预览；--yes 才真删
+```
+
+`use` 返回 `project_dir`。**之后该智能体的所有命令都要带上它**：
+
+```bash
+python scripts/book_manager.py ensure "孙子兵法" --project-dir "<project_dir>"
+```
+
+> `--project-dir` 放在命令前或后都可以。
+> 名字里不许有 `/ \ : * ? " < > |`，脚本会拒绝并提示。
+
+每个智能体有自己的书单和笔记，建在 `agents/<名字>/` 下，互不影响。
+删除前会展示待删的书单数与笔记数，必须用户确认后才能 `--yes`。
+
+## 工作区在哪
+
+- 用户**指定了智能体名字** → 用 `agents/<名字>/`
+- 用户**没提智能体** → 用 skill 根目录（自带 `book_list.json` 与 `book_cache/`）
+- 找不到 `book_list.json` → 说明装的是精简版，跑 `python scripts/init_project.py <目录>` 生成一份
+
+## 精读流水线
+
+**Step 0 生成 task_id** = `book_${YYYYMMDD}_${HHMM}`。
+
+**Step 1 确定读哪本**：
+
+```bash
+# 用户点名了某本书 —— 用它。不在书单会自动加入（新智能体书单是空的，这条是必经之路）
+python scripts/book_manager.py ensure "孙子兵法" --author "孙武" --priority 高
+
+# 用户没点名 —— 自动选（高优先级 + 未读优先）
+python scripts/book_manager.py select
+python scripts/book_manager.py select --random
+```
+
+`ensure` 返回这本书的完整信息；`existed: false` 表示原本不在书单、已自动加入。
+
+**Step 2 写元数据**：写入 `book_cache/book_meta/${task_id}.json`。
+
+**Step 2.5 事实核验（强制）**：
+联网检索豆瓣评分、出版信息、作者履历、写作背景、书内数据，
+**以及最关键的：全书章节结构**。结果写入 `book_cache/book_meta/${task_id}_facts.md`。
+
+铁律：没有检索到的事实就不许写，不许编章节标题、不许猜评分、不许造数据。
+未核实项必须在 facts 文件里显式列出，Step 3 生成时绕开。
+详见 `references/fact_check.md`。
 
 **Step 3 生成精读内容（核心）**：
 - 先用模板生成骨架：
@@ -56,60 +105,85 @@ python scripts/book_manager.py select --random        # 随机选
 - 读取骨架，分 2-3 次写入完整内容至 `book_cache/book_raw_content/${task_id}.html`
 - 目标：15000+ 字，15 模块，4+ 种 CSS 图表，12+ 数据行，12+ 金句，6+ 行动建议
 - 详细模块结构和字数分配见 `references/pipeline.md`
+- **图表硬约束**：`chart` 与 `radar` 两个容器顶部必须各写一段说明文字，
+  否则质检会因"容器内文字不足 80 字"判图表无效
 
 **Step 4 质检**：
 ```bash
 python scripts/qc_check.py book_cache/book_raw_content/${task_id}.html
 ```
-质检标准详见 `references/quality_standard.md`。不达标则补充生成（最多重试2次）。
+输出会直接列出 FAIL 项和没替换掉的占位符，照着改。不达标则补充，最多重试 2 次。
 
 **Step 5 更新状态**：
 ```bash
-python scripts/book_manager.py update "书名"
+python scripts/book_manager.py update "书名" --note-path "book_cache/book_raw_content/${task_id}.html"
 ```
+带 `--note-path` 会把笔记路径回写到书单，之后用 `notes` 就能按书名找回笔记。
+**`update` 与 `notes` 必须串行执行**，并发会让后者读到写入前的书单。
 
-**Step 6 写日志**：将运行日志写入 `book_cache/book_log/${task_id}.log`。
+**Step 6 写日志**：写入 `book_cache/book_log/${task_id}.log`。
 
-**Step 7 输出摘要**：向用户展示格式化精读摘要（核心洞见3条 + 行动建议3条 + 文件路径 + 统计信息）。
+**Step 7 输出摘要**：告诉用户——这本书讲了什么（3 条核心洞见）、
+读完能用什么（3 条行动建议）、笔记文件在哪、字数与模块统计。
+若 Step 2.5 核验不完整，一并说明哪些内容未经线上核实。
 
 ## 脚本说明
 
-所有脚本位于 `scripts/` 目录，支持 `--project-dir` 指定项目根目录（默认为脚本上级目录）。
+所有脚本在 `scripts/` 下，都支持 `--project-dir`（默认 skill 根目录）。
+
+### agent_manager.py — 具名智能体
+
+```bash
+create "<名字>" [--desc "说明"]   # 创建（同名会提示已存在，不覆盖）
+use "<名字>"                       # 返回 project_dir 与书单概况
+list / info "<名字>"               # 查看
+remove "<名字>" [--yes]            # 默认只预览，--yes 才真删
+```
 
 ### book_manager.py — 书单管理
 
 ```bash
+ensure "书名" [--author "作者"] [--priority 高] [--tags "标签"]  # 在书单就取，不在就加
 select [--title "书名"] [--random]   # 选书
-update "书名"                         # 更新阅读状态
-list [--category "分类"] [--priority 高] [--unread]  # 列出
+update "书名" [--note-path PATH] [--all]   # 更新阅读状态（精确优先）
+list [--category "分类"] [--priority 高] [--unread]
 search "关键词"                       # 搜索
-stats                                 # 统计
-unread                                # 未读列表
-add "书名" [--author "作者"] [--priority 高] [--tags "标签1,标签2"]  # 添加
-remove "书名"                          # 删除
+stats / unread                        # 统计 / 未读列表
+add "书名" [--author "作者"] [--priority 高] [--tags "标签"] [--force]  # 添加（同名会拦截）
+edit "书名" [--new-title "新名"] [--author "作者"] [--priority 高] [--tags "标签"] [--add-tags "标签"]
+remove "书名" [--yes] [--all]         # 删除（不加 --yes 只预览）
+notes [--title "书名"]                # 列出精读笔记及其路径
 ```
+
+> 安全设计：`update` / `remove` / `edit` 一律**精确匹配优先**。
+> 输入残缺书名若模糊命中多本会直接拒绝并列出候选，
+> 避免 `remove "原则"` 连带删掉《原则生活》这类静默误伤。
+> `remove` 默认只预览，必须显式 `--yes` 才真删。
+> **删除是不可逆操作，必须先向用户展示待删清单并取得确认。**
 
 ### html_template.py — HTML模板生成器
 
 ```bash
 generate --title "书名" --author "作者" --task-id book_20260827_1030 [--tags "标签"] [--priority "高"] [--project-dir DIR]
 ```
-生成 v5 暖色调精致配色 HTML 骨架，内含完整 CSS 样式（7色色板、5种图表、响应式、15模块emoji标题体系、场景步骤心法格式、一页精华复盘块）。
-视觉标准详见 `references/html_visual_standard.md`。
 
 ### qc_check.py — 质检脚本
 
 ```bash
 qc_check.py <html_file> [<html_file> ...]
 ```
-检查：字数≥15000、15模块有内容、≥4种有效图表、章节卡≥8、金句≥12、数据行≥12、行动建议≥6、无占位符、HTML闭合、无重复注水。
 
-### init_project.py — 项目初始化
+检查：字数≥15000、15模块有内容、≥4种有效图表、章节卡≥8、金句≥12、
+数据行≥12、行动建议≥6、无占位符、HTML闭合、无重复注水。
+
+### init_project.py — 导出独立工作区（可选）
 
 ```bash
-init_project.py /path/to/new-project [--books 5]
+init_project.py /path/to/new-project [--books 10]
 ```
-在目标目录创建完整项目结构，复制脚本，生成配置和示例书单。
+
+只有当用户想把书单和笔记放在 skill 目录之外时才用。
+具名智能体用 `agent_manager.py create` 即可，不需要它。
 
 ## 精读笔记 15 模块
 
@@ -141,26 +215,21 @@ init_project.py /path/to/new-project [--books 5]
 
 ## 参考文档
 
-需要更详细信息时加载对应参考文件：
-
-- `references/pipeline.md` — 7步流水线详解（每步的输入/输出/命令/示例）
-- `references/html_visual_standard.md` — HTML/CSS 视觉标准（色板、组件样式、响应式）
-- `references/quality_standard.md` — 质检标准（验收清单、字数统计方法、常见问题）
-- `references/book_list_format.md` — 书单 JSON 格式规范（字段说明、管理命令）
-
-## 模板资产
-
-- `assets/book_config.json` — 配置文件模板（HTML样式、模块、质检标准、选书规则）
-- `assets/book_list_template.json` — 书单模板（10本示例书籍）
+- `references/pipeline.md` — 7步流水线详解
+- `references/fact_check.md` — 事实核验环节（Step 2.5 必检项、铁律、降级策略）
+- `references/html_visual_standard.md` — HTML/CSS 视觉标准
+- `references/quality_standard.md` — 质检标准
+- `references/book_list_format.md` — 书单 JSON 格式规范
 
 ## 多本连读
 
-用户可说"读3本""连读5本"：循环执行 Step 0-7，每次选不同的书，每本生成独立 HTML，最后汇总展示。
+用户说"读3本""连读5本"：循环执行流水线，每次选不同的书，每本生成独立 HTML，最后汇总展示。
 
 ## 约束
 
 - 失败不中断，记录错误到日志继续执行
 - 精读内容基于 AI 对书籍的理解生成，不要求原文搬运
 - 章节结构、核心观点、关键数据必须忠于原书，不许虚构章节
+- 涉及评分、版次、数据、章节名的断言必须有 Step 2.5 的检索依据；查不到就写"未核实"或改用定性表述
 - 每次精读只读一本书
 - 输出文件名：`${task_id}.html`

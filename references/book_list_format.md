@@ -46,8 +46,9 @@ python scripts/book_manager.py select                     # 自动选
 python scripts/book_manager.py select --title "关键词"      # 指定选
 python scripts/book_manager.py select --random             # 随机选
 
-# 更新阅读状态
+# 更新阅读状态（可回写笔记路径）
 python scripts/book_manager.py update "书名"
+python scripts/book_manager.py update "书名" --note-path "book_cache/book_raw_content/xxx.html"
 
 # 列出
 python scripts/book_manager.py list                       # 全部
@@ -61,13 +62,45 @@ python scripts/book_manager.py search "关键词"
 # 统计
 python scripts/book_manager.py stats
 
-# 添加/删除
+# 添加（同名会被拦截，确需添加加 --force）
 python scripts/book_manager.py add "书名" --author "作者" --priority 高 --tags "投资,思维"
+
+# 修改书籍信息
+python scripts/book_manager.py edit "书名" --new-title "新书名" --author "作者" \
+  --priority 高 --tags "投资,思维" --add-tags "补充标签"
+
+# 删除（默认只预览，确认后加 --yes）
 python scripts/book_manager.py remove "书名"
+python scripts/book_manager.py remove "书名" --yes
+
+# 查看精读笔记
+python scripts/book_manager.py notes
+python scripts/book_manager.py notes --title "书名"
 
 # 指定项目目录
 python scripts/book_manager.py --project-dir /path/to/project stats
 ```
+
+## 匹配与安全
+
+`update` / `edit` / `remove` 都遵循**精确优先**：
+
+- 存在完整同名的书 → 只作用于该本
+- 只有一本模糊命中 → 作用于它
+- **多本模糊命中 → 拒绝执行**，返回候选列表让你补全书名，（`--all` 可强制全部）
+
+这样 `remove "原则"` 不会连带删掉《原则生活》，
+`update "原则"` 也不会把两本一起标记为已读。
+
+`notes` 字段在每次带 `--note-path` 的 `update` 时追加一条记录：
+
+```json
+"notes": [
+  {"task_id": "book_20261008_1805", "path": "book_cache/book_raw_content/book_20261008_1805.html", "date": "2026-10-08"}
+]
+```
+
+路径统一存**相对项目根目录**的相对路径，保证整个项目可以直接搬迁。
 
 ## 扩展字段（可选）
 

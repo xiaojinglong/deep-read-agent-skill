@@ -1,260 +1,182 @@
-# 🚀 快速开始指南
+# 快速开始
 
-本指南帮助你在5分钟内开始使用 Read Book Skill。
+核心就一句话：**装一次，之后全靠对话。**
 
-## 📋 前置条件
+不需要创建项目、不需要指定目录、不需要执行任何初始化 —— skill 目录本身就是工作区，
+`book_list.json` 和 `book_cache/` 已随安装一起就位。
 
-- Python 3.7 或更高版本
-- 基本的命令行操作知识
-- 一个文本编辑器（可选）
+前置条件：Python 3.7+（脚本只用标准库，无需装任何依赖）。
 
-## 🎯 方式一：快速体验（推荐新手）
+---
 
-### 1. 克隆项目
+## 第一步：安装（每台机器只做一次）
 
-```bash
-git clone https://github.com/YOUR_USERNAME/read-book-skill.git
-cd read-book-skill
-```
-
-### 2. 初始化项目
+在 skill 目录下执行：
 
 ```bash
-python scripts/init_project.py ./my-first-book-project
+python install.py
 ```
 
-### 3. 查看书单
+会交互式询问目标位置。也可以一次装到所有支持的平台：
 
 ```bash
-cd my-first-book-project
-python scripts/book_manager.py stats
+python install.py --targets all
+python install.py --list        # 先看支持哪些平台
 ```
 
-你会看到类似输出：
-```json
-{
-  "total": 10,
-  "read": 0,
-  "unread": 10,
-  "read_percentage": "0%",
-  "priority_distribution": {"高": 5, "中": 5},
-  "top_tags": {"投资": 3, "思维模型": 2, "心理学": 2}
-}
+支持的目标：`agents`（通用 `.agents/skills/`，多数工具都读它）、`claude`、`openclaw`、
+`workbuddy`、`codex`、`gemini`、`cursor`、`opencode`。
+
+> 说明：装到多个位置后，**各位置的书单相互独立**。你只在单一工具里用时完全无感；
+> 如果今天在 A 工具加书、明天在 B 工具读书，两边会各记各的。
+> 需要统一的话改共享数据目录即可。
+
+**也可以完全不用命令行** —— 直接把 skill 文件夹复制到你的工具的 skills 目录里（例如
+`~/.claude/skills/read-book-skill/`）同样生效，因为本 skill 用的是相对路径，不依赖任何
+模板变量替换。
+
+---
+
+## 第二步：读书（日常使用，一句话搞定）
+
+装好之后，**新开一个会话**，直接说话：
+
+```
+帮我读《穷查理宝典》
 ```
 
-### 4. 选一本书
+以下说法都能被理解：
+
+- "读一本" / "精读一本" —— 按优先级自动挑一本未读的
+- "读 3 本" —— 循环执行，每本生成独立笔记
+- "再读一遍《原则》" —— 指定书名
+- "书单里还有什么没读的" —— 只查询，不生成笔记
+
+说完就等着。AI 会自动跑完 4 个阶段，全程不需要你参与：
+
+| 阶段 | AI 做什么 |
+|------|----------|
+| 选书 | 高优先级 + 未读优先；同名多本时精确匹配，不误伤 |
+| 核验事实 | **强制联网**核验豆瓣评分、出版信息、作者履历、**全书章节目录**，写进 `book_cache/book_meta/*_facts.md` |
+| 生成笔记 | 用模板生成骨架，再填满 15 个模块，目标 15000+ 字 |
+| 质检回写 | `qc_check.py` 全项通过才算完；通过后把笔记路径回写到书单 |
+
+不达标会自己补写重跑（最多重试 2 次），最后给你一份摘要 + 笔记文件路径。
+
+### 跑一次会看到什么
+
+实测《穷查理宝典》一次通过的结果：
+
+```
+[OK ] book_cache/book_raw_content/book_20261008_1854.html
+    words=19719  modules=15/15  charts=5种  cards=14
+    bq=22  tr=21  action_li=10  closed=True  ph=0
+```
+
+---
+
+## 第三步（可选）：创建一个自己命名的读书智能体
+
+如果你想让不同的智能体管不同的书单 —— 比如一个读历史、一个读商业 —— 就说：
+
+```
+创建一个读书智能体，名字叫「给娃读历史」
+```
+
+AI 会建一个独立工作区（`agents/给娃读历史/`），有自己的书单和笔记，跟其他智能体互不干扰。
+
+之后要用它就带上名字：
+
+```
+用「给娃读历史」帮我精读《孙子兵法》
+```
+
+**《孙子兵法》不在书单里也没关系** —— AI 会自动把它加进这个智能体的书单再读。
+
+其他说法：
+
+```
+我有哪些读书智能体？
+「给娃读历史」里读过哪些书？
+把「给娃读历史」删掉吧        ← AI 会先列出要删什么，你确认后才真删
+```
+
+不用具名智能体也完全可以，跳过这步直接在 skill 目录里读就行。
+
+---
+
+## 第四步：书单管理（同样是说话）
+
+```
+加一本《纳瓦尔宝典》，作者埃里克·乔根森，优先级高，标签财富、幸福
+把《原则》的优先级改成中
+《人类简史》读完了，删掉吧
+我有哪些书？哪些还没读？
+```
+
+对应的命令（想手动执行时）：
 
 ```bash
-python scripts/book_manager.py select
-```
-
-输出示例：
-```json
-{
-  "selected": true,
-  "title": "穷查理宝典",
-  "author": "查理·芒格",
-  "priority": "高",
-  "tags": ["投资", "思维模型"],
-  "last_read": null,
-  "en_slug": "qiong-cha-li-bao-dian"
-}
-```
-
-### 5. 生成精读笔记骨架
-
-```bash
-python scripts/html_template.py generate \
-  --title "穷查理宝典" \
-  --author "查理·芒格" \
-  --task-id book_20260827_1000 \
-  --tags "投资,思维模型" \
-  --priority "高"
-```
-
-### 6. 查看生成的文件
-
-```bash
-ls book_cache/book_raw_content/
-# 输出: book_20260827_1000.html
-```
-
-用浏览器打开这个HTML文件，你会看到精读笔记的骨架模板。
-
-## 🎯 方式二：完整精读流程
-
-### 1. 准备工作
-
-```bash
-cd my-first-book-project
-```
-
-### 2. 添加你想读的书
-
-```bash
-python scripts/book_manager.py add "你的书名" \
-  --author "作者名" \
-  --priority 高 \
-  --tags "标签1,标签2"
-```
-
-### 3. 选书
-
-```bash
-# 指定书名选书
-python scripts/book_manager.py select --title "你的书名"
-
-# 或者自动选书（按优先级）
-python scripts/book_manager.py select
-```
-
-### 4. 生成精读笔记
-
-这一步需要AI（如Claude）来填充内容：
-
-1. **生成骨架**：
-   ```bash
-   python scripts/html_template.py generate \
-     --title "你的书名" \
-     --author "作者名" \
-     --task-id book_20260827_1200
-   ```
-
-2. **AI填充内容**：
-   - 读取骨架文件
-   - 按15个模块填充内容
-   - 目标15000+字
-   - 分2-3次写入
-
-3. **质检**：
-   ```bash
-   python scripts/qc_check.py book_cache/book_raw_content/book_20260827_1200.html
-   ```
-
-4. **更新状态**：
-   ```bash
-   python scripts/book_manager.py update "你的书名"
-   ```
-
-### 5. 查看结果
-
-用浏览器打开生成的HTML文件，享受你的精读笔记！
-
-## 🎯 方式三：使用Claude Code自动化
-
-如果你使用Claude Code，可以直接说：
-
-```
-帮我读一本《底层逻辑》
-```
-
-Claude Code会自动执行完整的7步流水线：
-1. 初始化项目
-2. 添加书籍到书单
-3. 选书
-4. 生成精读笔记
-5. 质检
-6. 更新状态
-7. 输出摘要
-
-## 📚 常见操作
-
-### 书单管理
-
-```bash
-# 查看所有书
-python scripts/book_manager.py list
-
-# 按优先级筛选
-python scripts/book_manager.py list --priority 高
-
-# 只看未读
+python scripts/book_manager.py add "书名" --author "作者" --priority 高 --tags "标签1,标签2"
+python scripts/book_manager.py edit "书名" --add-tags "2026目标"
+python scripts/book_manager.py remove "书名"          # 只预览，不真删
+python scripts/book_manager.py remove "书名" --yes    # 确认后才真删
 python scripts/book_manager.py list --unread
-
-# 搜索书籍
 python scripts/book_manager.py search "关键词"
-
-# 删除书籍
-python scripts/book_manager.py remove "书名"
+python scripts/book_manager.py stats
+python scripts/book_manager.py notes --title "书名"   # 按书名找回笔记路径
 ```
 
-### 质检操作
+### 几个安全设计，值得知道
 
-```bash
-# 检查单个文件
-python scripts/qc_check.py book_cache/book_raw_content/book_20260827_1200.html
+- **精确优先**：输入残缺书名若模糊命中多本，会直接拒绝并列出候选，不会出现
+  `remove "原则"` 连带删掉《原则生活》这种静默误伤。
+- **删除默认只预览**：必须显式加 `--yes` 才真的删。
+- **同名会拦截**：重复 `add` 同名书籍会被挡下并提示已存在，确认是另一本再加 `--force`。
+- **笔记可找回**：`update` 时带 `--note-path`，路径会写进书单，之后不用去翻
+  `book_20261008_1854.html` 这种文件名。
 
-# 检查所有文件
-python scripts/qc_check.py book_cache/book_raw_content/*.html
+---
 
-# JSON格式输出
-python scripts/qc_check.py --json book_cache/book_raw_content/*.html
+## 数据都存在哪
+
+全部在 skill 目录内，直接删掉 skill 目录就彻底卸载：
+
+```
+book_list.json                              书单（含每本书的笔记路径）
+book_cache/book_meta/${task_id}.json        本次选书元数据
+book_cache/book_meta/${task_id}_facts.md    联网核验的事实清单
+book_cache/book_raw_content/${task_id}.html 精读笔记成品
+book_cache/book_log/${task_id}.log          本次运行日志
 ```
 
-### 批量阅读
+笔记 HTML 自带完整 CSS，单文件独立，可以直接分享。
 
-```bash
-# 读3本书
-# Claude Code会自动循环执行Step 0-7
-帮我读3本书
-```
+---
 
-## 🔧 自定义配置
+## 常见问题
 
-### 修改字数限制
+**Q：一定要先初始化项目吗？**
+不用。只有当你想把书单和笔记单独存放、脱离 skill 目录时，才用
+`python scripts/init_project.py <目录>` 导出一份独立工作区。
 
-编辑 `book_config.json`：
+**Q：质检失败怎么办？**
+AI 会自动补写重跑。想手动排查就跑 `python scripts/qc_check.py <html>`，
+它会直接列出 FAIL 项和未替换的占位符。
 
-```json
-{
-  "min_words": 15000,
-  "target_words": 15000
-}
-```
+**Q：换了台电脑，书单能带走吗？**
+能。复制 `book_list.json` 即可；`book_cache/` 一起复制则笔记也带走。
+重装时加 `--force` 会覆盖数据文件，默认不覆盖。
 
-### 修改选书规则
+**Q：装了之后 AI 没反应？**
+多数工具需要新开会话才会加载新技能；OpenClaw 还需要 `openclaw gateway restart`。
+另外注意 OpenClaw 会**静默跳过体积过大的 SKILL.md**。
 
-编辑 `book_config.json`：
+---
 
-```json
-{
-  "selection_rules": {
-    "priority_order": ["高", "中", "低"],
-    "prefer_unread": true,
-    "prefer_null_last_read": true
-  }
-}
-```
+## 想批量导入书单
 
-### 修改HTML样式
-
-编辑 `book_config.json` 中的 `html_style` 部分：
-
-```json
-{
-  "html_style": {
-    "background": "#faf9f6",
-    "font_size": "18px",
-    "line_height": "1.85",
-    "max_width": "820px"
-  }
-}
-```
-
-## ❓ 常见问题
-
-### Q: 质检失败怎么办？
-
-A: 查看FAIL项，针对性补充：
-- 字数不足：补充更多内容
-- 模块缺失：检查15个模块是否都有内容
-- 图表不足：添加CSS图表
-- 金句不足：添加blockquote
-- 行动建议不足：在落地实践指南中添加li
-
-### Q: 如何批量导入书单？
-
-A: 编辑 `book_list.json`，按格式添加：
+直接编辑 `book_list.json`：
 
 ```json
 [
@@ -270,51 +192,4 @@ A: 编辑 `book_list.json`，按格式添加：
 ]
 ```
 
-### Q: 如何导出精读笔记？
-
-A: 直接复制 `book_cache/book_raw_content/` 目录下的HTML文件，它们是独立的、可分享的。
-
-### Q: 支持哪些书籍？
-
-A: 理论上支持所有书籍。AI会根据书籍内容生成精读笔记。对于专业性强的书籍，可能需要人工补充。
-
-## 🎓 进阶使用
-
-### 1. 自定义Agent提示词
-
-编辑 `agent_prompt/main_orchestrator.md`，定义你的精读流程。
-
-### 2. 集成到工作流
-
-使用Claude Code的skill功能，将读书智能体集成到你的日常工作流。
-
-### 3. 扩展功能
-
-- 添加新的质检规则
-- 自定义HTML模板样式
-- 集成推送功能（邮件、笔记软件等）
-
-## 📖 示例项目
-
-查看 `my-book-project/` 目录，这是一个完整的示例项目，包含：
-- 10本示例书籍
-- 一份完整的精读笔记示例
-- 完整的日志和元数据
-
-## 🆘 获取帮助
-
-- 📖 查看 [README.md](README.md)
-- 🐛 报告问题：GitHub Issues
-- 💬 讨论交流：GitHub Discussions
-- 📧 联系作者：请通过GitHub联系
-
-## 🎉 开始使用
-
-现在你已经了解了基本用法，开始你的精读之旅吧！
-
-```bash
-cd my-first-book-project
-python scripts/book_manager.py select
-```
-
-**祝你阅读愉快！** 📚✨
+`priority` 只能是 `高` / `中` / `低`；`notes` 字段由脚本自动维护，不用手写。

@@ -30,9 +30,72 @@ MODULES = ['荣誉与口碑', '作者简介', '目标读者与阅读价值', '�
            '实用案例', '读者笔记精选', '关键数据与事实', '金句摘录', '作者底层逻辑',
            '可视化图表总结', '落地实践指南', '跨书关联', '客观评价', '一页精华']
 CHART_CLASSES = ('chart', 'timeline', 'mindmap', 'flow', 'radar')
+# 兜底用的高置信占位符特征词（无法读取模板占位符库时启用）。
+# 注意：不能直接用 `【[^】]*】` 全量匹配 —— 那会把正文里正常的
+# 【书名】【术语】标注（如「引用了【原则】的观点」）误判成占位符，
+# 造成该项永远无法通过。
+PLACEHOLDER_HINT_WORDS = (
+    '待填写', '待补充', '待添加', '待完善', '占位', '此处插入', '待确认',
+    'TODO', 'TBD', 'XXX', 'lorem', '请在此', '自行补充',
+)
 PLACEHOLDER_PATTERNS = [
-    r'【[^】]*】', r'TODO', r'待补充', r'此处插入', r'待添加', r'lorem', r'\{\{.*?\}\}',
+    r'\{\{.*?\}\}', r'TODO', r'\bTBD\b', r'lorem', r'待补充', r'此处插入',
+    r'待添加', r'待完善', r'待填写', r'占位符',
 ]
+# 子串兜底匹配的最小长度，低于此长度的模板占位符不参与，
+# 避免【作者】【说明】【维度】【章节】这类短词误伤正文。
+_PH_SUBSTR_MIN = 4
+
+
+def _load_template_placeholders(script_dir=None):
+    """从 html_template.py 提取全部【...】占位符，作为精确比对库。
+
+    模板里的占位符（如【具体说明】【金句原文】【发生了什么，意味着什么】）
+    本质是写给 Agent 的写作指令，集合固定且可从模板源文件直接读取。
+    用"是否命中该集合"来判断占位符有没有被替换，比泛化的【...】正则
+    精确得多：既不会漏判，也不会误伤正文中正常的【书名】【术语】。
+    """
+    cands = []
+    if script_dir:
+        cands.append(os.path.join(script_dir, 'html_template.py'))
+    cands.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              'html_template.py'))
+    for c in cands:
+        try:
+            with open(c, encoding='utf-8') as f:
+                found = set(re.findall(r'【[^】]*】', f.read()))
+            if found:
+                return found
+        except OSError:
+            continue
+    return set()
+
+
+def _placeholders(html, tpl_ph):
+    """返回 (hard_hits, soft_count)
+
+    hard_hits  : 确认未替换的占位符 —— 计入 FAIL
+    soft_count : 正文中正常使用的【...】（如【原则】【黑天鹅】）—— 仅提示，不计 FAIL
+
+    判定顺序：
+      1. 与模板占位符完全一致             -> hard
+      2. 内文包含某个模板占位符的内文     -> hard（覆盖 AI 二次改写的情况）
+      3. 内文含高置信占位特征词           -> hard（模板库不可用时的兜底）
+      4. 其余                             -> soft
+    """
+    hard, soft = [], 0
+    substr_lib = [t[1:-1] for t in tpl_ph if len(t) - 2 >= _PH_SUBSTR_MIN]
+    for raw in re.findall(r'【[^】]*】', html):
+        inner = raw[1:-1]
+        if raw in tpl_ph:
+            hard.append(raw)
+        elif any(s in inner for s in substr_lib):
+            hard.append(raw)
+        elif any(w in inner for w in PLACEHOLDER_HINT_WORDS):
+            hard.append(raw)
+        else:
+            soft += 1
+    return hard, soft
 
 
 def _text_of(html):
@@ -96,7 +159,11 @@ def _action_items(html):
 
     if a < 0 or b < 0 or b <= a:
         return 0
-    return html[a:b].count('<li>')
+
+    # 不能直接用 count('<li>')：那要求 li 必须写成裸标签，一旦 Agent 生成
+    # <li class="act"> 这种带属性的常规写法就会被全部漏计，直接判 0 条。
+    # 这里用正则匹配任意属性的开标签，`(?=[\s>])` 保证不会误吃掉 <link>。
+    return len(re.findall(r'<li(?=[\s>/])', html[a:b]))
 
 
 def _dup_detect(text):
@@ -108,20 +175,26 @@ def _dup_detect(text):
     return False, None
 
 
-def qc(path):
+def qc(path, tpl_ph=None):
     with open(path, encoding='utf-8') as f:
         html = f.read()
+    if tpl_ph is None:
+        tpl_ph = _load_template_placeholders()
     text = _text_of(html)
     words = len(text)
     mods_total = sum(1 for m in MODULES if m in html)
     mods_ok, mods_real = _module_content_ok(html)
     charts_ok, chart_kinds, chart_containers = _charts_ok(html)
-    cards = html.count('class="chapter-card"')
-    bq = html.count('<blockquote')
-    trs = html.count('<tr')
+    # 同理，不能精确匹配 class="chapter-card"：多 class 写法
+    # （class="chapter-card featured"）会被漏计。
+    cards = len(re.findall(r'class="[^"]*\bchapter-card\b[^"]*"', html))
+    # <blockquote> / <tr> 用前缀计数即可自然兼容带属性的写法
+    bq = len(re.findall(r'<blockquote(?=[\s>/])', html))
+    trs = len(re.findall(r'<tr(?=[\s>/])', html))
     li = _action_items(html)
     closed = html.strip().endswith('</html>')
-    ph = sum(len(re.findall(p, html, flags=re.I)) for p in PLACEHOLDER_PATTERNS)
+    ph_hits, ph_soft = _placeholders(html, tpl_ph)
+    ph = len(ph_hits) + sum(len(re.findall(p, html, flags=re.I)) for p in PLACEHOLDER_PATTERNS)
     dup, dup_info = _dup_detect(text)
 
     checks = {
@@ -144,6 +217,11 @@ def qc(path):
     failed = [k for k, v in checks.items() if not v]
     if failed:
         print(f'    FAIL项: {failed}')
+    if ph_hits:
+        sample = '、'.join(sorted(set(ph_hits))[:6])
+        print(f'    未替换占位符: {len(ph_hits)} 处，例如 {sample}')
+    elif ph_soft:
+        print(f'    提示: 正文含 {ph_soft} 处【...】方括号标注（视为正常引用，不计失败）')
     return flag == 'OK '
 
 

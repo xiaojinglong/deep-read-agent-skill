@@ -43,6 +43,15 @@ book_cache/push_result/
 demo-project/
 my-book-project/
 
+# 个人数据（每个用户自己的书单/笔记，不随 skill 分发）
+/book_list.json
+/book_config.json
+/book_cache/
+/agents/
+
+# 本机会话工作区
+.workbuddy/
+
 # Test
 .coverage
 htmlcov/

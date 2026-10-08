@@ -29,6 +29,125 @@ import shutil
 from pathlib import Path
 
 
+ORCHESTRATOR_TEMPLATE = """# 读书精读智能体 — 主调度提示词
+
+> 目标：一次精读产出一份 >=15000 字、15 模块、含 4+ 种图表的 HTML 精读笔记。
+
+## 执行前
+
+- 项目根目录 = 本文件所在目录的上一级（含 `book_list.json`）
+- `task_id` = `book_${YYYYMMDD}_${HHMM}`
+- 所有脚本用 `python` 执行，路径相对项目根目录
+
+## 流水线
+
+### Step 1 选书
+
+```bash
+python scripts/book_manager.py select                 # 自动（优先级+未读优先）
+python scripts/book_manager.py select --title "书名"   # 指定
+```
+
+输出 JSON 拿到 `title` / `author` / `tags` / `priority`。
+
+### Step 2 写元数据
+
+写入 `book_cache/book_meta/${task_id}.json`。
+
+### Step 2.5 事实核验（强制，不可跳过）
+
+这一步决定笔记的可信度。规范见 `references/fact_check.md`。
+
+用搜索工具跑完以下必检项：
+
+| 必检项 | 检索词模板 |
+|--------|-----------|
+| 豆瓣评分 | `<书名> 豆瓣 评分` |
+| 出版信息 | `<书名> <作者> 出版社 版次` |
+| 作者履历 | `<作者> 身份 履历 代表作` |
+| **全书章节结构** | `<书名> 目录 章节 大纲` |
+| 写作背景 | `<书名> 创作背景 为什么写这本书` |
+| 书内数据 | `<书名> 数据 统计 研究发现` |
+
+结果写入 `book_cache/book_meta/${task_id}_facts.md`，未核实项必须显式列出。
+
+**铁律**：查不到就不许写 —— 不编章节标题、不猜评分、不造数据。
+模块⑤ 占 5000 字，章节名一旦虚构整篇报废。
+检索全部失败则降级：改定性表述 + 按论证脉络组织 + 结尾说明未核验。
+
+### Step 3 生成内容
+
+**3.1 生成骨架**
+
+```bash
+python scripts/html_template.py generate \\
+  --title "书名" --author "作者" \\
+  --task-id ${task_id} --tags "标签" --priority "高"
+```
+
+**3.2 分 2-3 次填充**
+
+读取骨架，按 15 模块分批写入 `book_cache/book_raw_content/${task_id}.html`。
+字数合计 >=15000（模块⑤ 核心理论逐章拆解约 5000 字，需 >=8 个 chapter-card）。
+
+所有数字、评分、章节名必须来自 Step 2.5 的事实清单。
+模型记忆只能用于观点阐述，不能用于事实断言。
+
+**3.3 图表**
+至少 4 种 CSS 图表，且必须替换掉骨架示例里的【...】占位内容，换成本书真实数据。
+可用图表容器：chart / timeline / mindmap / flow / radar
+
+### Step 4 质检
+
+```bash
+python scripts/qc_check.py book_cache/book_raw_content/${task_id}.html
+```
+
+输出会列出未替换占位符的具体条目，照着改即可。不达标则针对性补充，最多重试 2 次。
+
+### Step 5 更新状态
+
+```bash
+python scripts/book_manager.py update "书名" \\
+  --note-path "book_cache/book_raw_content/${task_id}.html"
+```
+
+务必带 `--note-path`：笔记路径会回写进书单，之后用 `notes` 命令能按书名找回。
+书名要与 `select` 返回的完全一致，以便精确匹配。
+
+### Step 6 写日志
+
+写入 `book_cache/book_log/${task_id}.log`。
+
+### Step 7 输出摘要
+
+向用户输出：本书概况 -> 核心洞见 3 条 -> 行动建议 3 条 -> 文件路径 -> 统计信息
+（字数 / 模块数 / 图表数）。若 Step 2.5 核验不完整，一并说明哪些内容未经线上核实。
+
+## 用户常见的书单操作
+
+```bash
+python scripts/book_manager.py list [--unread] [--priority 高]
+python scripts/book_manager.py search "关键词"
+python scripts/book_manager.py stats
+python scripts/book_manager.py add "书名" --author "作者" --priority 高 --tags "标签"
+python scripts/book_manager.py edit "书名" --priority 中 --add-tags "标签"
+python scripts/book_manager.py remove "书名" --yes
+python scripts/book_manager.py notes --title "书名"
+```
+
+安全约定：`update` / `edit` / `remove` 一律精确优先，残缺书名若模糊命中多本会拒绝
+并列出候选；`remove` 不加 `--yes` 只做预览。
+
+## 约束
+
+- 失败不中断，记录错误继续
+- 每次精读只读一本书
+- 输出文件名 `${task_id}.html`
+- **宁可写"未核实"，不可编事实**
+- **删除书单条目属于不可逆操作，必须先展示待删清单并得到用户确认**
+"""
+
 CONFIG_TEMPLATE = {
     "version": "5.0",
     "book_list_path": "book_list.json",
@@ -238,11 +357,7 @@ def init_project(target_dir: str, num_books: int = 5):
 
     # 写一个空的 agent_prompt 占位文件
     orchestrator_path = project / "agent_prompt" / "main_orchestrator.md"
-    orchestrator_path.write_text(
-        "# 读书精读智能体 - 主调度提示词\n\n"
-        "> 参考 references/pipeline.md 编写完整流水线提示词\n",
-        encoding="utf-8"
-    )
+    orchestrator_path.write_text(ORCHESTRATOR_TEMPLATE, encoding="utf-8")
 
     print(f"[OK] 项目已初始化: {project}")
     print(f"  书单: {book_list_path} ({len(books)} 本)")

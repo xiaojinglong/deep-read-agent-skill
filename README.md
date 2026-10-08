@@ -7,6 +7,53 @@
 [![Version](https://img.shields.io/badge/Version-5.0-orange.svg)]()
 [![Tests](https://img.shields.io/badge/Tests-33%20passed-brightgreen.svg)]()
 
+---
+
+## 完全不会命令行？看这里
+
+你只需要做两件事，**剩下的都由 AI 去做**。
+
+**第 1 步**：把下面这段话里的链接换成你拿到的项目链接，发给你的 AI 工具（OpenClaw、Claude、Cursor 等都行）：
+
+> 帮我安装这个 skill：<这里粘贴项目链接>
+
+**第 2 步**：装好后（可能需要新开一个对话），继续说：
+
+> 帮我创建一个读书智能体，名字叫「我的书房」
+
+**第 3 步**：开始读书：
+
+> 用「我的书房」帮我精读《孙子兵法》
+
+就这么简单。**你不需要碰任何命令、任何文件、任何目录。**
+创建出来的智能体有自己的书单和笔记，笔记是 HTML 文件，可以直接发给别人看。
+
+<details>
+<summary>给 AI 看的安装说明（如果你是 AI，请读这段）</summary>
+
+把这个仓库放到当前 AI 工具的 skills 目录下即可，**不需要执行 install.py**：
+
+```bash
+git clone --depth 1 <仓库地址> ~/.openclaw/skills/read-book-skill
+# 其他常见位置：~/.claude/skills/  ~/.agents/skills/  ~/.cursor/skills/
+```
+
+没有 git 就下载 zip 解压过去。本 skill 零配置，复制到位即用。
+装完提醒用户新开会话（OpenClaw 还需 `openclaw gateway restart`）。
+
+用户说「创建一个读书智能体 xxx」时执行：
+```bash
+python scripts/agent_manager.py create "xxx"
+python scripts/agent_manager.py use "xxx"     # 拿到 project_dir
+```
+后续该智能体的命令都加 `--project-dir "<project_dir>"`（位置前后都行）。
+用户点名要读的书若不在书单，用 `book_manager.py ensure "书名"` 自动加入。
+
+完整行为指南见 `SKILL.md`。
+</details>
+
+---
+
 ## 🎯 这是什么？
 
 Read Book Skill 是一个**AI驱动的读书智能体**，它可以：
@@ -45,6 +92,70 @@ Read Book Skill 是一个**AI驱动的读书智能体**，它可以：
 - ✅ **自动质检** - 字数、模块、图表、金句等11项质量检查
 - 📊 **书单管理** - 添加、删除、搜索、统计书单
 - 🔄 **批量阅读** - 支持多本连读，自动生成摘要
+
+## 📦 安装到任意 AI 工具
+
+本项目遵循 **Agent Skills 开放标准**（Anthropic 发起，Claude Code / Codex / Cursor /
+Copilot / Gemini CLI / OpenClaw / WorkBuddy 等均已支持）。一份 SKILL.md，装到哪都能用。
+
+### 方式一：一键安装（推荐）
+
+```bash
+python install.py
+```
+
+脚本会自动探测本机装了哪些 AI 工具，把 skill 分发到各自目录：
+
+| 目标 | 路径 | 工具 |
+|------|------|------|
+| `agents` | `~/.agents/skills/` | **通用总线**，Cursor/Copilot/Gemini/Zed/OpenCode 等多数工具都读 |
+| `claude` | `~/.claude/skills/` | Claude Code |
+| `openclaw` | `~/.openclaw/skills/` | OpenClaw |
+| `workbuddy` | `~/.workbuddy/skills/` | WorkBuddy |
+| `codex` | `~/.codex/skills/` | Codex CLI |
+| `gemini` | `~/.gemini/skills/` | Gemini CLI |
+| `cursor` | `~/.cursor/skills/` | Cursor |
+| `opencode` | `~/.config/opencode/skills/` | OpenCode |
+
+常用参数：
+
+```bash
+python install.py --list                      # 只看能装到哪，不安装
+python install.py --targets claude,openclaw   # 只装指定工具
+python install.py --force                     # 连书单和笔记一起覆盖（默认会保留）
+```
+
+安装器只会分发必要文件（`SKILL.md` / `scripts` / `references` / `assets` / 数据区），
+不会把 `tests`、`examples`、`.git` 之类的东西带过去。
+**升级时默认保留你的书单和笔记**，不会冲掉数据。
+
+### 方式二：手动安装
+
+把下面这些放进你的 AI 工具的 skills 目录即可（每个工具一个子目录，名字随意）：
+
+```
+read-book-skill/
+├── SKILL.md          # 必需
+├── scripts/          # 必需
+├── references/       # 推荐
+├── assets/           # 推荐
+├── book_list.json    # 书单（可选，缺失时按 init 生成）
+└── book_cache/       # 笔记存放处
+```
+
+### 装完之后
+
+**新开一个会话**让工具刷新 skill 列表，然后直接说：
+
+> 帮我读一本《穷查理宝典》
+
+不需要初始化、不需要选目录——skill 目录本身就是工作区，书单和笔记都存在这里。
+
+### 关于 `{baseDir}`
+
+有些 skill 用 `{baseDir}` 引用自身目录。那是 **Claude Code 的私有语法，不在开放标准里**，
+换到 Cursor / Gemini 等工具会解析失败。本项目一律用**相对路径**，
+兼容性最好（这也是 anthropics 官方 skill 仓库的做法）。
 
 ## 🚀 快速开始
 
@@ -99,8 +210,19 @@ your-book-project/
 # 查看书单统计
 python scripts/book_manager.py stats
 
-# 添加新书
+# 添加新书（同名会被拦截）
 python scripts/book_manager.py add "书名" --author "作者" --priority 高 --tags "标签1,标签2"
+
+# 修改书籍信息
+python scripts/book_manager.py edit "书名" --new-title "新书名" --author "作者" \
+  --priority 高 --tags "标签" --add-tags "追加标签"
+
+# 删除（默认只预览，确认后加 --yes）
+python scripts/book_manager.py remove "书名"
+python scripts/book_manager.py remove "书名" --yes
+
+# 查看精读笔记
+python scripts/book_manager.py notes --title "书名"
 
 # 列出所有书
 python scripts/book_manager.py list
@@ -126,9 +248,13 @@ python scripts/html_template.py generate --title "书名" --author "作者" --ta
 # 质检
 python scripts/qc_check.py book_cache/book_raw_content/book_20260827_1030.html
 
-# 更新阅读状态
-python scripts/book_manager.py update "书名"
+# 更新阅读状态（可同时回写笔记路径）
+python scripts/book_manager.py update "书名" \
+  --note-path "book_cache/book_raw_content/xxx.html"
 ```
+
+> `update` / `edit` / `remove` 均为**精确匹配优先**：残缺书名若模糊命中多本会直接拒绝并列出候选，
+> 避免误导伤到《原则生活》这类相近书名。`remove` 不加 `--yes` 只预览不删除。
 
 ## 🎯 使用场景
 
@@ -191,7 +317,7 @@ read-book-skill/
 ├── run_tests.py                # 测试运行脚本
 │
 ├── scripts/                    # 核心脚本
-│   ├── book_manager.py         # 书单管理（选书、更新、搜索、统计）
+│   ├── book_manager.py         # 书单管理（增删改查、选书、笔记索引）
 │   ├── html_template.py        # HTML模板生成器（v5版本，15模块）
 │   ├── qc_check.py             # 质检脚本（11项检查）
 │   └── init_project.py         # 项目初始化脚本

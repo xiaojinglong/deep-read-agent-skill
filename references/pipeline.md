@@ -65,9 +65,35 @@ python scripts/book_manager.py select --random
 
 ---
 
+### Step 2.5: 事实核验（联网检索）
+
+**这一步是强制的，不可跳过。** 详细规范见 `references/fact_check.md`。
+
+在动笔写 15000 字之前，先用搜索工具把可核验的事实钉死：
+
+| 必检项 | 检索关键词 |
+|--------|-----------|
+| 豆瓣评分 | `<书名> 豆瓣 评分` |
+| 出版信息 | `<书名> <作者> 出版社 版次` |
+| 作者履历 | `<作者> 身份 履历 代表作` |
+| **全书章节结构** | `<书名> 目录 章节 大纲` |
+| 写作背景 | `<书名> 创作背景 为什么写这本书` |
+| 书内数据 | `<书名> 数据 统计 研究发现` |
+
+结果写入 `book_cache/book_meta/${task_id}_facts.md`，**未核实项必须显式列出**。
+
+铁律：**没查到的就不许写** —— 不许编章节标题、不许猜豆瓣评分、不许造数据。
+模块⑤ 占 5000 字，章节名一旦虚构整篇报废。
+检索全部失败时按 `fact_check.md` 的降级策略走（改定性表述 + 向用户说明），不要中断流程。
+
+---
+
 ### Step 3: 生成深度精读内容（核心步骤）
 
 这是整个流水线最核心、最耗时的步骤。目标是生成一份 **≥15000字** 的 HTML 精读笔记。
+
+**前置输入**：`${task_id}_facts.md` 的事实清单。所有出现了的数字、评分、
+章节名必须来自该清单，模型自身的记忆**只能用于观点阐述，不能用于事实断言**。
 
 #### 3.1 生成 HTML 骨架
 
@@ -141,10 +167,16 @@ python scripts/qc_check.py book_cache/book_raw_content/${task_id}.html
 ### Step 5: 更新阅读状态
 
 ```bash
-python scripts/book_manager.py update "书名"
+python scripts/book_manager.py update "书名" --note-path "book_cache/book_raw_content/${task_id}.html"
 ```
 
 更新 `book_list.json` 中该书的 `last_read` 为今天，`user_read` 设为 `true`。
+
+带上 `--note-path` 会把笔记路径同时回写到该书的 `notes` 字段，
+之后 `book_manager.py notes --title "书名"` 即可按书名找回笔记。
+
+> 注意：不要把 `update`（改数据）和 `notes`（读数据）并发执行，
+> 后者可能读到写入前的书单而显示 total=0。串行执行即可。
 
 ---
 
