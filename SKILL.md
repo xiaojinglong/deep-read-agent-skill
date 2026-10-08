@@ -20,7 +20,10 @@ agent_created: true
 | "用 xxx 帮我读《孙子兵法》" | 先定位 xxx 的工作区，再跑精读流水线 |
 | "帮我读《孙子兵法》"（没提智能体名字） | 直接用 skill 根目录跑流水线 |
 | "读一本" / "再读 3 本" | 自动选书，跑 N 次流水线 |
-| "书单里还有啥" / "加一本 X" / "删掉 X" | 只做书单操作，不生成笔记 |
+| **"把《xxx》加入书单"** | `add`，见「常用三件事」① |
+| **"列出我的书单"** | `list`，见「常用三件事」② |
+| **"打开《xxx》的读书笔记"** | `open`，见「常用三件事」③ |
+| "书单里还有啥" / "删掉 X" / "改一下 X" | 其余书单操作，不生成笔记 |
 
 **不要主动问用户"要把项目建在哪"**，这会造成不必要的打断。
 用户给了名字就按名字建；没给名字就用 skill 根目录。
@@ -75,6 +78,58 @@ python scripts/book_manager.py ensure "孙子兵法" --project-dir "<project_dir
 - 用户**没提智能体** → 用 skill 根目录
 - 找不到 `book_list.json` → **不用管**，`book_manager.py` 会自动建一份空书单和 `book_cache/`（不会塞任何示例书）。
   想导出一份给别人用的独立工作区才是 `init_project.py` 的活儿。
+
+## 常用三件事
+
+装完之后用户说得最多的就是这三句。具名智能体记得加 `--project-dir "<project_dir>"`。
+
+### ① "把《xxx》加入书单"
+
+```bash
+python scripts/book_manager.py add "孙子兵法" --author "孙武" --priority 高 --tags "兵法,战略"
+```
+
+- `added: true` → 回"加好了，书单现在 N 本"
+- `added: false` 且 `duplicate: true` → 回"这本已经在书单里了"。
+  **不要**自作主张加 `--force` 再加一遍
+- 用户只说加书就**到此为止**，不要顺手跑精读流水线
+- 只有用户顺带说了作者/优先级/标签时才传那些参数，没说就只传书名
+
+### ② "列出我的书单"
+
+```bash
+python scripts/book_manager.py list
+```
+
+把结果整理成人话，**别把 JSON 甩给用户**：
+
+```
+1. 《孙子兵法》孙武 · 高优先级 · 未读
+2. 《穷查理宝典》查理·芒格 · 已读（10-08）· 有笔记
+```
+
+`has_note: true` 的标出来，用户接着说"打开它"你就知道去哪找。
+
+### ③ "打开《xxx》的读书笔记"
+
+```bash
+python scripts/book_manager.py open "孙子兵法"           # 用系统默认浏览器打开
+python scripts/book_manager.py open "孙子兵法" --no-open  # 只返回路径，不弹窗
+python scripts/book_manager.py open                       # 不点名：打开最近的一篇
+python scripts/book_manager.py open "孙子兵法" --index 0   # 这本有多篇笔记时指定第 N 篇
+```
+
+按返回值回话：
+
+| 返回 | 你怎么回 |
+|------|---------|
+| `opened: true` | "已帮你打开，文件在 <abs_path>"（**把这个路径给用户**，他可能要转发给别人） |
+| `error: 这本书还没有精读笔记` | "这本还没读过，要现在读吗？" —— **等用户点头再开跑** |
+| `error: 未找到匹配书籍` | 书单里没这本，提示先加书 |
+| `error: 笔记文件不在了` | 文件被挪走或删了，可以重读生成一份新的 |
+| `error: 有多本书都匹配` | 把候选列出来让用户选 |
+
+> `open` 会真的弹一个浏览器窗口，这是预期行为，不是脚本出错。
 
 ## 精读流水线
 
@@ -159,6 +214,7 @@ add "书名" [--author "作者"] [--priority 高] [--tags "标签"] [--force]  #
 edit "书名" [--new-title "新名"] [--author "作者"] [--priority 高] [--tags "标签"] [--add-tags "标签"]
 remove "书名" [--yes] [--all]         # 删除（不加 --yes 只预览）
 notes [--title "书名"]                # 列出精读笔记及其路径
+open ["书名"] [--latest] [--index N] [--all] [--no-open]  # 打开笔记（默认浏览器）
 ```
 
 > 安全设计：`update` / `remove` / `edit` 一律**精确匹配优先**。

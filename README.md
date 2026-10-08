@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-5.0-orange.svg)]()
-[![Tests](https://img.shields.io/badge/Tests-33%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-39%20passed-brightgreen.svg)]()
 
 ---
 
@@ -29,6 +29,18 @@
 
 就这么简单。**你不需要碰任何命令、任何文件、任何目录。**
 创建出来的智能体有自己的书单和笔记，笔记是 HTML 文件，可以直接发给别人看。
+
+### 装好之后，你直接说人话就行
+
+| 你说 | 会发生什么 |
+|------|-----------|
+| 帮我把《孙子兵法》加入书单 | 加进书单。已经加过的会告诉你"已经在书单里了"，不会重复 |
+| 列出我的书单 | 列出书单，标出哪本已读、哪本有笔记 |
+| 帮我打开《孙子兵法》的读书笔记 | 直接用浏览器打开那篇笔记，并告诉你文件在哪 |
+| 用「我的书房」帮我精读《孙子兵法》 | 跑完整条流水线，生成 15000 字 HTML 笔记 |
+
+书没在书单里？不用先加，直接说要读它，AI 会自动加进去再读。
+笔记还没生成？会告诉你"这本还没读过，要现在读吗"，不会自己偷偷跑半小时。
 
 <details>
 <summary>给 AI 看的安装说明（如果你是 AI，请读这段）</summary>

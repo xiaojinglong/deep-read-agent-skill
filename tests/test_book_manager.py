@@ -5,9 +5,12 @@
 import unittest
 import sys
 import os
+import io
 import json
+import argparse
 import tempfile
 import shutil
+from contextlib import redirect_stdout
 
 # 添加scripts目录到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
@@ -17,7 +20,10 @@ from book_manager import (
     select_book,
     update_last_read,
     add_book,
-    to_slug
+    to_slug,
+    cmd_open,
+    save_books,
+    _note_abs,
 )
 
 
@@ -151,6 +157,78 @@ class TestToSlug(unittest.TestCase):
     def test_empty_title(self):
         result = to_slug("")
         self.assertEqual(result, "")
+
+
+class TestOpenNote(unittest.TestCase):
+    """测试 open 命令（打开读书笔记）。
+
+    全部走 --no-open，避免单测真的弹浏览器。
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.note_rel = os.path.join("book_cache", "book_raw_content", "book_20261008_2000.html")
+        self.note_abs = os.path.join(self.tmp, self.note_rel)
+
+    def _books(self, with_note=True):
+        notes = [{"task_id": "book_20261008_2000", "path": self.note_rel, "date": "2026-10-08"}]
+        return [
+            {"title": "孙子兵法", "author": "孙武", "priority": "高",
+             "last_read": "2026-10-08" if with_note else None,
+             "user_read": with_note,
+             "notes": notes if with_note else []},
+        ]
+
+    def _run(self, title, with_note=True, write_file=True, **kw):
+        books = self._books(with_note)
+        save_books(self.tmp, books)
+        if with_note and write_file:
+            os.makedirs(os.path.dirname(self.note_abs), exist_ok=True)
+            with open(self.note_abs, "w", encoding="utf-8") as f:
+                f.write("<html></html>")
+        args = argparse.Namespace(title=title, latest=False, index=None,
+                                  all=False, no_open=True, **kw)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            cmd_open(args, self.tmp)
+        return json.loads(buf.getvalue())
+
+    def test_open_existing_note(self):
+        r = self._run("孙子兵法")
+        self.assertTrue(r["ok"])
+        self.assertFalse(r["opened"])          # --no-open
+        self.assertEqual(r["title"], "孙子兵法")
+        self.assertEqual(os.path.normpath(r["abs_path"]), os.path.normpath(self.note_abs))
+
+    def test_open_before_reading(self):
+        """还没读过的书：明确报错，不能让 AI 误以为有笔记"""
+        r = self._run("孙子兵法", with_note=False)
+        self.assertFalse(r["ok"])
+        self.assertIn("还没有精读笔记", r["error"])
+
+    def test_open_book_not_in_list(self):
+        r = self._run("三体", with_note=False)
+        self.assertFalse(r["ok"])
+        self.assertEqual(r["error"], "未找到匹配书籍")
+
+    def test_open_missing_file(self):
+        """笔记记录还在但文件被删了：要提示文件不在，而不是抛异常"""
+        r = self._run("孙子兵法", with_note=True, write_file=False)
+        self.assertFalse(r["ok"])
+        self.assertIn("笔记文件不在了", r["error"])
+
+    def test_open_without_title_picks_latest(self):
+        r = self._run(None)
+        self.assertTrue(r["ok"])
+        self.assertEqual(r["title"], "孙子兵法")
+
+    def test_note_abs_resolves_against_project_dir(self):
+        """相对路径必须按 project_dir 解析，不是按 CWD"""
+        self.assertEqual(
+            os.path.normpath(_note_abs(self.tmp, self.note_rel)),
+            os.path.normpath(self.note_abs),
+        )
 
 
 if __name__ == '__main__':

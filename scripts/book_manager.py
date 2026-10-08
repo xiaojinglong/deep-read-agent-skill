@@ -26,6 +26,7 @@ import os
 import shutil
 import argparse
 import random
+import subprocess
 from datetime import datetime, timezone, timedelta
 
 # 时区
@@ -356,16 +357,29 @@ def cmd_list(args, project_dir):
         filtered = [b for b in filtered if b.get("priority") == args.priority]
     if args.unread:
         filtered = [b for b in filtered if not b.get("last_read")]
-    result = {
-        "total": len(filtered),
-        "books": [{
+    def _row(b):
+        ns = sorted((b.get("notes") or []),
+                    key=lambda n: ((n.get("date") or ""), (n.get("task_id") or "")))
+        latest = ns[-1] if ns else None
+        note_path = latest.get("path", "") if latest else ""
+        return {
             "title": b.get("title", ""),
             "author": b.get("author", ""),
             "priority": b.get("priority", ""),
             "tags": b.get("tags", []),
             "last_read": b.get("last_read"),
-            "status": "已读" if b.get("last_read") else "未读"
-        } for b in filtered]
+            "status": "已读" if b.get("last_read") else "未读",
+            "notes": len(ns),
+            "has_note": bool(ns),
+            "note_path": note_path,
+            "note_exists": os.path.exists(_note_abs(project_dir, note_path)) if note_path else False,
+        }
+
+    rows = [_row(b) for b in filtered]
+    result = {
+        "total": len(rows),
+        "with_notes": sum(1 for r in rows if r["has_note"]),
+        "books": rows,
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -657,6 +671,154 @@ def cmd_notes(args, project_dir):
     }, ensure_ascii=False, indent=2))
 
 
+def _note_abs(project_dir, rel):
+    """笔记相对路径 -> 绝对路径（相对路径按 project_dir 解析）。"""
+    if not rel:
+        return ""
+    if os.path.isabs(rel):
+        return os.path.normpath(rel)
+    p = os.path.normpath(os.path.join(project_dir, rel))
+    if not os.path.exists(p):
+        alt = os.path.normpath(os.path.abspath(rel))
+        if os.path.exists(alt):
+            return alt
+    return p
+
+
+def _open_file(path):
+    """用系统默认程序打开文件，返回 (ok, error)。"""
+    try:
+        if sys.platform.startswith("win"):
+            os.startfile(path)
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", path])
+        else:
+            subprocess.Popen(["xdg-open", path])
+        return True, ""
+    except Exception as e:
+        return False, str(e)
+
+
+def _collect_notes(books, project_dir, indexes=None):
+    """收集笔记记录，按时间升序。indexes 为 None 时收集全部。"""
+    rows = []
+    for i, b in enumerate(books):
+        if indexes is not None and i not in indexes:
+            continue
+        for n in (b.get("notes") or []):
+            rel = n.get("path", "")
+            abs_p = _note_abs(project_dir, rel)
+            rows.append({
+                "title": b.get("title", ""),
+                "author": b.get("author", ""),
+                "date": n.get("date"),
+                "task_id": n.get("task_id"),
+                "path": rel,
+                "abs_path": abs_p,
+                "exists": os.path.exists(abs_p) if rel else False,
+            })
+    rows.sort(key=lambda r: ((r.get("date") or ""), (r.get("task_id") or "")))
+    return rows
+
+
+def cmd_open(args, project_dir):
+    """打开某本书的精读笔记（HTML）。
+
+    用户说"帮我打开《xxx》的读书笔记"时直接用这条：
+    定位书 -> 找到最新一篇笔记 -> 确认文件还在 -> 用系统默认浏览器打开。
+    """
+    books = load_books(project_dir)
+    title = (args.title or "").strip()
+
+    if not books:
+        print(json.dumps({
+            "ok": False, "error": "书单是空的，没有任何笔记",
+            "total_books": 0,
+            "hint": "先加书：add \"书名\"，或让它读一本：ensure \"书名\""
+        }, ensure_ascii=False, indent=2))
+        return
+
+    if title:
+        indexes, err = _resolve_targets(books, title, allow_all=args.all)
+        if err:
+            err = dict(err)
+            err["ok"] = False
+            if err.get("error") == "未找到匹配书籍":
+                err["hint"] = ("书单里没有这本书。先加进书单（add \"书名\"）再读，"
+                               "或者用 list 看看书单里都有什么")
+            else:
+                err["hint"] = err.get("hint") or "说清楚是哪本书，或用 list 看看书单里都有什么"
+            print(json.dumps(err, ensure_ascii=False, indent=2))
+            return
+    else:
+        indexes = None  # 没点名 -> 在全部笔记里找最新一篇
+
+    rows = _collect_notes(books, project_dir, indexes)
+
+    if not rows:
+        payload = {"ok": False, "error": "这本书还没有精读笔记", "input": title}
+        if title and indexes:
+            b = books[indexes[0]]
+            payload["title"] = b.get("title", "")
+            payload["status"] = "已读" if b.get("last_read") else "未读"
+        payload["hint"] = "要现在读吗？读完整条流水线后会生成 HTML 笔记，再打开就能看到"
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+
+    # 多篇笔记且点名了多本书 -> 不猜，列出来
+    titles = sorted({r["title"] for r in rows})
+    if len(titles) > 1 and not args.latest:
+        print(json.dumps({
+            "ok": False,
+            "error": "有多本书都匹配，不确定要打开哪本",
+            "input": title,
+            "candidates": titles,
+            "hint": "说完整书名，或加 --latest 直接打开最近的一篇",
+        }, ensure_ascii=False, indent=2))
+        return
+
+    target = rows[-1]
+    idx = args.index if args.index is not None else None
+    if idx is not None:
+        if 0 <= idx < len(rows):
+            target = rows[idx]
+        else:
+            print(json.dumps({
+                "ok": False, "error": f"没有第 {idx + 1} 篇笔记",
+                "total_notes": len(rows), "notes": rows,
+            }, ensure_ascii=False, indent=2))
+            return
+
+    if not target["exists"]:
+        print(json.dumps({
+            "ok": False, "error": "笔记文件不在了（可能被移动或删除）",
+            "title": target["title"], "path": target["path"],
+            "abs_path": target["abs_path"],
+            "hint": "重新读一遍会生成新的笔记文件",
+        }, ensure_ascii=False, indent=2))
+        return
+
+    opened, open_err = (False, "")
+    if not args.no_open:
+        opened, open_err = _open_file(target["abs_path"])
+
+    print(json.dumps({
+        "ok": True,
+        "opened": opened,
+        "title": target["title"],
+        "author": target["author"],
+        "date": target["date"],
+        "task_id": target["task_id"],
+        "path": target["path"],
+        "abs_path": target["abs_path"],
+        "open_error": open_err or None,
+        "total_notes": len(rows),
+        "notes": rows,
+        "hint": ("已用默认浏览器打开" if opened else
+                 "文件在下面这个路径，直接打开即可") + "。把这个路径告诉用户。",
+    }, ensure_ascii=False, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(description="读书智能体书籍管理")
     parser.add_argument("--project-dir", default=None, help="项目根目录（默认: 脚本上级目录）")
@@ -711,6 +873,13 @@ def main():
     p_notes = sub.add_parser("notes", help="列出精读笔记")
     p_notes.add_argument("--title", default=None, help="按书名过滤")
 
+    p_open = sub.add_parser("open", help="打开某本书的精读笔记（用系统默认程序）")
+    p_open.add_argument("title", nargs="?", default=None, help="书名；省略则打开最近的一篇笔记")
+    p_open.add_argument("--latest", action="store_true", help="命中多本时直接打开最近的一篇")
+    p_open.add_argument("--index", type=int, default=None, help="打开第 N 篇（从 0 开始）")
+    p_open.add_argument("--all", action="store_true", help="模糊命中多本时一并考虑")
+    p_open.add_argument("--no-open", action="store_true", help="只返回路径，不真的打开")
+
     # --project-dir 同时挂到每个子命令上：位置可前可后。
     # 不这么做的话，`update "书名" --project-dir X`（子命令在前）会直接报
     # unrecognized arguments —— 而那正是文档里的写法。
@@ -744,6 +913,8 @@ def main():
         cmd_remove(args, project_dir)
     elif args.command == "notes":
         cmd_notes(args, project_dir)
+    elif args.command == "open":
+        cmd_open(args, project_dir)
     else:
         parser.print_help()
 
