@@ -13,9 +13,11 @@
 
 你只需要做两件事，**剩下的都由 AI 去做**。
 
-**第 1 步**：把下面这段话里的链接换成你拿到的项目链接，发给你的 AI 工具（OpenClaw、Claude、Cursor 等都行）：
+**第 1 步**：把下面这句话发给你的 AI 工具（OpenClaw、Claude、Cursor 等都行）：
 
-> 帮我安装这个 skill：<这里粘贴项目链接>
+> 帮我安装这个 skill：https://github.com/xiaojinglong/deep-read-agent-skill
+
+（如果你拿到的是别人给你的另一个链接，把链接换掉即可，话不用改。）
 
 **第 2 步**：装好后（可能需要新开一个对话），继续说：
 
@@ -34,7 +36,7 @@
 把这个仓库放到当前 AI 工具的 skills 目录下即可，**不需要执行 install.py**：
 
 ```bash
-git clone --depth 1 <仓库地址> ~/.openclaw/skills/read-book-skill
+git clone --depth 1 https://github.com/xiaojinglong/deep-read-agent-skill.git ~/.openclaw/skills/read-book-skill
 # 其他常见位置：~/.claude/skills/  ~/.agents/skills/  ~/.cursor/skills/
 ```
 
@@ -178,7 +180,7 @@ bash examples/quick_start.sh
 #### 1. 克隆项目
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/read-book-skill.git
+git clone --depth 1 https://github.com/xiaojinglong/deep-read-agent-skill.git read-book-skill
 cd read-book-skill
 ```
 
@@ -433,12 +435,14 @@ python run_tests.py TestBookManager
 
 ```bash
 # 克隆最新版本
-git clone https://github.com/YOUR_USERNAME/read-book-skill.git
+git clone --depth 1 https://github.com/xiaojinglong/deep-read-agent-skill.git read-book-skill
 
 # 或者拉取更新
 cd read-book-skill
-git pull origin main
+git pull origin master
 ```
+
+> 仓库默认分支是 `master`。
 
 ### 如何贡献代码？
 

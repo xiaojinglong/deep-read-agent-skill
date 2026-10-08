@@ -5,6 +5,37 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.1.0] - 2026-10-08
+
+面向「完全不懂命令行」的用户重做使用流程。
+
+### Added
+- 🤖 **具名读书智能体**（`scripts/agent_manager.py`）
+  - `create` / `use` / `list` / `info` / `remove`
+  - 每个智能体是 `agents/<名字>/` 下的独立工作区，有自己的书单和笔记
+  - 名字会做安全校验（拒绝 `/ \ : * ? " < > |` 等）
+  - `remove` 默认只预览待删内容，必须 `--yes` 才真删
+- ➕ **`ensure` 命令**：用户说的书不在书单里时自动加入再读，不再报「没找到」
+- 🪶 **零初始化**：`book_list.json` / `book_config.json` / `book_cache/` 缺失时自动建空的，
+  且**不塞任何示例书**
+- 📄 `references/fact_check.md`：Step 2.5 事实核查清单
+
+### Changed
+- 📝 SKILL.md 重写：顶部加意图映射表（"帮我安装这个 skill" / "创建一个读书智能体 xxx" /
+  "用 xxx 帮我读《孙子兵法》"），命令由 AI 执行、不念给用户
+- 📝 README / GETTING_STARTED 增加「完全不会命令行？看这里」三步流程，
+  并把文档里的占位链接换成真实仓库地址
+- 🚫 `.gitignore` 排除个人书单、笔记缓存、`agents/`、`.workbuddy/`
+
+### Fixed
+- 🐛 `--project-dir` 只能放在子命令前，放后面报 `unrecognized arguments`
+  （改为 `argparse.SUPPRESS` 挂到每个子解析器，前后都行）
+- 🐛 `--note-path` 相对路径按 CWD 解析，具名智能体下写出 `../../` 错路径
+  （改为优先按 `project_dir` 解析）
+- 🐛 `update` 重复执行会在 `notes` 里堆重复记录（改为按 `task_id`/`path` 幂等 upsert）
+- 🐛 空书单时 `select` 只报「未找到匹配书籍」，AI 不知道下一步
+  （改为明确提示用 `ensure` 加书）
+
 ## [Unreleased]
 
 ### Added

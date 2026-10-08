@@ -23,6 +23,7 @@ Usage:
 import json
 import sys
 import os
+import shutil
 import argparse
 import random
 from datetime import datetime, timezone, timedelta
@@ -47,11 +48,56 @@ def get_log_dir(project_dir):
     return os.path.join(project_dir, "book_cache", "book_log")
 
 
+CACHE_SUBDIRS = [
+    "book_cache/book_meta",
+    "book_cache/book_raw_content",
+    "book_cache/push_result",
+    "book_cache/book_log",
+]
+
+
+def ensure_project(project_dir):
+    """零初始化：书单/配置/缓存目录不存在就自动建空的。
+
+    不塞任何示例书 —— 用户的书单只应该有他自己加的书。
+    返回本次新建的东西（已存在则返回空列表）。
+    """
+    created = []
+    if not os.path.isdir(project_dir):
+        os.makedirs(project_dir, exist_ok=True)
+        created.append(project_dir)
+
+    bl = get_book_list_path(project_dir)
+    if not os.path.exists(bl):
+        save_books(project_dir, [])
+        created.append("book_list.json")
+
+    cfg = os.path.join(project_dir, "book_config.json")
+    if not os.path.exists(cfg):
+        src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "book_config.json")
+        src = os.path.normpath(src)
+        if os.path.exists(src):
+            try:
+                with open(src, "r", encoding="utf-8") as f:
+                    json.load(f)
+                shutil.copy2(src, cfg)
+                created.append("book_config.json")
+            except (json.JSONDecodeError, OSError):
+                pass
+
+    for d in CACHE_SUBDIRS:
+        p = os.path.join(project_dir, *d.split("/"))
+        if not os.path.isdir(p):
+            os.makedirs(p, exist_ok=True)
+            created.append(d)
+    return created
+
+
 def load_books(project_dir):
     path = get_book_list_path(project_dir)
     if not os.path.exists(path):
-        print(json.dumps({"error": f"书单文件不存在: {path}", "hint": "运行 init_project.py 初始化项目，或手动创建 book_list.json"}, ensure_ascii=False))
-        sys.exit(1)
+        # 零初始化：第一次用的时候自动建一份空书单，而不是报错
+        ensure_project(project_dir)
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -219,6 +265,13 @@ def add_book(books, title, author="", priority="中", tags=None, en_slug=""):
 
 def cmd_select(args, project_dir):
     books = load_books(project_dir)
+    if not books:
+        print(json.dumps({
+            "error": "书单是空的，没有书可读",
+            "total": 0,
+            "hint": "用 ensure 把用户说的那本书直接加进来：ensure \"书名\" --project-dir <项目目录>，然后继续精读"
+        }, ensure_ascii=False))
+        return
     book = select_book(books, title=args.title, random_pick=args.random)
     if book is None:
         print(json.dumps({"error": "未找到匹配书籍"}, ensure_ascii=False))

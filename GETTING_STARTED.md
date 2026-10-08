@@ -2,14 +2,26 @@
 
 核心就一句话：**装一次，之后全靠对话。**
 
-不需要创建项目、不需要指定目录、不需要执行任何初始化 —— skill 目录本身就是工作区，
-`book_list.json` 和 `book_cache/` 已随安装一起就位。
+不需要创建项目、不需要指定目录、不需要执行任何初始化 —— skill 目录本身就是工作区。
+第一次用到的时候会自动生成空的 `book_list.json` 和 `book_cache/`（不会塞任何示例书）。
 
 前置条件：Python 3.7+（脚本只用标准库，无需装任何依赖）。
 
 ---
 
 ## 第一步：安装（每台机器只做一次）
+
+### 方式 A：把链接发给 AI，让它装（推荐，不用碰命令行）
+
+对 OpenClaw / Claude / Cursor 等任意工具说一句：
+
+```
+帮我安装这个 skill：https://github.com/xiaojinglong/deep-read-agent-skill
+```
+
+AI 会自己 clone 到该工具的 skills 目录。**你不需要跑 install.py。**
+
+### 方式 B：自己装
 
 在 skill 目录下执行：
 

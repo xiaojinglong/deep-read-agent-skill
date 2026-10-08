@@ -30,7 +30,12 @@ agent_created: true
 用户常常是让你装，而不是自己装。装到当前这个 AI 工具的 skills 目录下即可：
 
 ```bash
-git clone --depth 1 <仓库地址> <该工具的skills目录>/read-book-skill
+git clone --depth 1 https://github.com/xiaojinglong/deep-read-agent-skill.git <该工具的skills目录>/read-book-skill
+```
+
+例如 OpenClaw：
+```bash
+git clone --depth 1 https://github.com/xiaojinglong/deep-read-agent-skill.git ~/.openclaw/skills/read-book-skill
 ```
 
 常见位置：`~/.claude/skills/`、`~/.openclaw/skills/`、`~/.agents/skills/`。
@@ -67,8 +72,9 @@ python scripts/book_manager.py ensure "孙子兵法" --project-dir "<project_dir
 ## 工作区在哪
 
 - 用户**指定了智能体名字** → 用 `agents/<名字>/`
-- 用户**没提智能体** → 用 skill 根目录（自带 `book_list.json` 与 `book_cache/`）
-- 找不到 `book_list.json` → 说明装的是精简版，跑 `python scripts/init_project.py <目录>` 生成一份
+- 用户**没提智能体** → 用 skill 根目录
+- 找不到 `book_list.json` → **不用管**，`book_manager.py` 会自动建一份空书单和 `book_cache/`（不会塞任何示例书）。
+  想导出一份给别人用的独立工作区才是 `init_project.py` 的活儿。
 
 ## 精读流水线
 
